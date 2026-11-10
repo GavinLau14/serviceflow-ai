@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+**/target/
+**/node_modules/
+**/dist/
+**/playwright-report/
+**/test-results/
+.superpowers/
+*.log
+.DS_Store
