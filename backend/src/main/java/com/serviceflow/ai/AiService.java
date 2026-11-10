@@ -5,6 +5,7 @@ import static com.serviceflow.ai.AiModels.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.serviceflow.auth.User;
 import com.serviceflow.common.ApiException;
+import com.serviceflow.operations.OperationsService;
 import com.serviceflow.ticket.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -19,12 +20,16 @@ public class AiService {
   private final AiMapper runs;
   private final ObjectMapper json;
   private final TicketService tickets;
+  private final TicketMapper ticketMapper;
+  private final OperationsService operations;
 
-  public AiService(AiGateway gateway, AiMapper runs, ObjectMapper json, TicketService tickets) {
+  public AiService(AiGateway gateway, AiMapper runs, ObjectMapper json, TicketService tickets, TicketMapper ticketMapper, OperationsService operations) {
     this.gateway = gateway;
     this.runs = runs;
     this.json = json;
     this.tickets = tickets;
+    this.ticketMapper = ticketMapper;
+    this.operations = operations;
   }
 
   private Output failure(String mode, String answer) {
@@ -46,6 +51,7 @@ public class AiService {
     Row row = new Row();
     row.id = UUID.randomUUID().toString();
     row.customerId = user.id;
+    row.originalMessage = message;
     row.latencyMs = (System.nanoTime() - started) / 1000000;
     try {
       row.responseJson = json.writeValueAsString(output);
@@ -174,6 +180,51 @@ public class AiService {
             new TicketRequests.Create(p.title(), p.description(), p.category(), p.priority()));
     runs.complete(id, t.id);
     return t;
+  }
+
+  @Transactional
+  public Ticket handoff(User user, String id, boolean confirmed, TicketRequests.Category category) {
+    if (!user.is("CUSTOMER")) throw ApiException.forbidden();
+    Row row = runs.lock(id, user.id);
+    if (row == null) throw ApiException.missing();
+    if (!confirmed) throw ApiException.bad("请显式确认转人工服务");
+    Ticket ticket;
+    if (row.ticketId != null) ticket = tickets.require(user, row.ticketId);
+    else {
+      String message = originalMessage(row);
+      // A human request is authorized by the customer, regardless of AI mode or confidence.
+      String title = "人工服务请求 · " + message.strip();
+      title = title.substring(0, Math.min(160, title.length()));
+      ticket = tickets.create(user, new TicketRequests.Create(title, message,
+          category, TicketRequests.Priority.NORMAL));
+      runs.complete(id, ticket.id);
+    }
+    if (!row.handoffRequested) {
+      ticketMapper.event(ticket.id, user.id, "HUMAN_HANDOFF", ticket.status, ticket.status,
+          "客户本人已确认转人工；请在工单公开会话继续沟通，由已分派客服开始处理");
+      operations.record(ticket, user.id, "HUMAN_HANDOFF", "客户本人确认的人工服务请求已受理");
+      runs.handoffRequested(id);
+    }
+    return ticket;
+  }
+
+  private String originalMessage(Row row) {
+    if (row.originalMessage != null && !row.originalMessage.isBlank()) return row.originalMessage;
+    // Legacy runs may recover only a proposal previously validated against the exact input hash.
+    try {
+      Output output = decode(row);
+      Proposal proposal = output.proposal();
+      if (proposal != null && proposal.description() != null) {
+        String message = proposal.description();
+        String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+            .digest(message.getBytes(StandardCharsets.UTF_8)));
+        if (message.length() <= 5000 && hash.equals(row.messageHash)
+            && validate(output, message).proposal() != null) return message;
+      }
+    } catch (RuntimeException | java.security.NoSuchAlgorithmException ignored) {
+      // A fresh, customer-owned consultation supplies the missing source safely.
+    }
+    throw new ApiException(409, "ORIGINAL_MESSAGE_UNAVAILABLE", "旧咨询缺少可验证的原始问题，请重新咨询后转人工，或手动提交工单");
   }
 
   public Object index(User user) {

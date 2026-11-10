@@ -22,7 +22,8 @@ import {
   priorityNames,
   time,
 } from "../api";
-const props = defineProps<{ id: number }>();
+import TicketOperations from "./TicketOperations.vue";
+const props = defineProps<{ id: number; user: User }>();
 const emit = defineEmits<{ updated: [] }>();
 const detail = ref<Detail | null>(null),
   loading = ref(false),
@@ -310,7 +311,8 @@ async function transition(target: string) {
             </li>
           </ol>
         </section>
-        <section class="comments-section">
+        <TicketOperations v-if="user.role!=='CUSTOMER'" :id="id" :user="user" :status="detail.ticket.status" @updated="load"/>
+      <section class="comments-section">
           <h3>
             沟通记录 <span class="subtle">{{ detail.comments.length }}</span>
           </h3>

@@ -34,7 +34,7 @@ async function login() {
       >
       <div>
         <p class="intro-label">售后服务，从问题到解决</p>
-        <h1>每一个问题，<br />都有清晰的下一步。</h1>
+        <h1>连接每次服务，<br />推进每一个解决。</h1>
         <p>
           让客户、客服与服务团队在同一条处理链路中协作。保留问题的上下文，也让每次交接有据可查。
         </p>
@@ -94,7 +94,7 @@ async function login() {
           </p>
         </details>
       </div>
-      <p class="login-note">M1 · 工单协作版 · AI 尚未接入</p>
+      <p class="login-note">ServiceFlow · 安全协作与智能检索</p>
     </section>
   </div>
 </template>

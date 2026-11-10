@@ -4,6 +4,7 @@ import static com.serviceflow.ticket.TicketRequests.*;
 
 import com.serviceflow.auth.*;
 import com.serviceflow.common.ApiException;
+import com.serviceflow.operations.OperationsService;
 import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,10 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TicketService {
   private final TicketMapper tickets;
   private final UserMapper users;
+  private final OperationsService operations;
 
-  public TicketService(TicketMapper tickets, UserMapper users) {
+  public TicketService(TicketMapper tickets, UserMapper users, OperationsService operations) {
     this.tickets = tickets;
     this.users = users;
+    this.operations = operations;
   }
 
   public record Page(List<Ticket> items, long total, int page, int size) {}
@@ -86,8 +89,10 @@ public class TicketService {
     t.status = "OPEN";
     t.customerId = u.id;
     t.teamId = req.category() == Category.DEVICE ? 1 : 2;
+    operations.lockTeam(t.teamId);
     tickets.insert(t);
     tickets.event(t.id, u.id, "CREATED", null, "OPEN", "客户提交售后问题");
+    operations.initialize(t, u.id);
     return require(u, t.id);
   }
 
@@ -101,11 +106,13 @@ public class TicketService {
     if (agent == null || !agent.is("AGENT") || !Objects.equals(agent.teamId, t.teamId))
       throw ApiException.bad("请选择工单所属团队的在职客服");
     checkVersion(t, req.version());
+    operations.lockTeam(t.teamId);
     String old = t.status;
     t.assigneeId = agent.id;
     if (t.status.equals("OPEN")) t.status = "ASSIGNED";
     persist(t);
     tickets.event(id, u.id, "ASSIGNED", old, t.status, "已分派给 " + agent.displayName);
+    operations.record(t, u.id, "ASSIGNED", "工单已重新分派");
     return require(u, id);
   }
 
@@ -137,6 +144,9 @@ public class TicketService {
         old,
         target,
         req.message().strip());
+    if (target.equals("WAITING_CUSTOMER")) operations.firstResponse(t);
+    operations.record(t, u.id, target.equals("CLOSED") ? "CUSTOMER_CONFIRMED" :
+        old.equals("WAITING_CUSTOMER") ? "CUSTOMER_REJECTED" : "STATUS_CHANGED", req.message().strip());
     return require(u, id);
   }
 
@@ -148,6 +158,12 @@ public class TicketService {
     checkVersion(t, req.version());
     persist(t);
     tickets.comment(id, u.id, req.body().strip(), req.internal());
+    if (req.internal()) {
+      operations.recordStaff(t, u.id, "INTERNAL_NOTE", "客服添加了内部记录");
+    } else {
+      if (!u.is("CUSTOMER")) operations.firstResponse(t);
+      operations.record(t, u.id, "COMMENTED", "工单新增公开回复");
+    }
     return require(u, id);
   }
 

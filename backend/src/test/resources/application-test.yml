@@ -8,6 +8,9 @@ spring:
       host: 127.0.0.1
       port: 16390
 app:
+  workflows:
+    auto-assign: false
+    scan-enabled: false
   ai:
     enabled: false
   demo:

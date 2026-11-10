@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { ElDrawer, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTag, ElCheckbox } from "element-plus";
+import { ElDrawer, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTag, ElCheckbox, ElSelect, ElOption } from "element-plus";
 import { api, type AiRun, type AiMode, type Ticket, priorityNames } from "../api";
 const model = defineModel<boolean>({ required: true });
 const emit = defineEmits<{ created: [ticket: Ticket]; manual: [] }>();
@@ -8,7 +8,8 @@ const message = ref("");
 const current = ref<AiRun | null>(null);
 const history = ref<AiRun[]>([]);
 const busy = ref(false), executing = ref(false), historyBusy = ref(false);
-const error = ref(""), historyError = ref(""), confirmed = ref(false);
+const error = ref(""), historyError = ref(""), confirmed = ref(false), humanConfirmed=ref(false);
+const humanCategory=ref<""|"DEVICE"|"APPLIANCE">("");
 let active = true;
 onUnmounted(() => { active = false; });
 const modeNames: Record<AiMode, string> = {
@@ -41,6 +42,14 @@ async function loadHistory() {
   }
 }
 watch(model, (open) => { if (open) loadHistory(); });
+watch(current,()=>{humanConfirmed.value=false;humanCategory.value="";});
+async function handoff(){
+ if(pending.value||!humanConfirmed.value||!current.value||!humanCategory.value)return;
+ executing.value=true;error.value="";
+ try{const ticket=await api<Ticket>(`/ai/runs/${current.value.id}/handoff`,{confirmed:true,category:humanCategory.value});if(!active)return;model.value=false;emit("created",ticket);}
+ catch(e){if(active)error.value=e instanceof Error?e.message:"转人工失败，请重试";}
+ finally{if(active)executing.value=false;}
+}
 function select(run: AiRun) {
   current.value = run;
   confirmed.value = false;
@@ -120,7 +129,7 @@ function manual() {
         <p v-if="current.mode === 'disabled' || current.mode === 'error'" class="muted">可稍后重试，或提交售后问题由人工跟进。</p>
         <p class="preserve-text assist-answer">{{ current.answer || "未返回可用回答，请提交给人工处理。" }}</p>
         <el-alert v-if="current.handoff" title="建议由人工继续跟进" type="warning" :closable="false" description="助手未能确认完整处理方案。你可以提交售后问题，补充实际情况。" />
-        <div v-if="current.citations.length" class="assist-citations">
+        <section v-if="current.handoff && !current.ticketId" class="next-action assist-proposal"><h3>交给客服继续处理</h3><p class="muted">保留本次问题原文，创建售后工单并进入人工服务队列。</p><el-form-item label="服务分类" for="handoff-category"><el-select id="handoff-category" v-model="humanCategory" placeholder="选择需要服务的产品分类"><el-option label="数码设备" value="DEVICE"/><el-option label="家用电器" value="APPLIANCE"/></el-select></el-form-item><el-checkbox v-model="humanConfirmed" :disabled="pending">我同意将本次问题转人工并创建工单</el-checkbox><div class="button-row"><el-button type="primary" :loading="executing" :disabled="!humanConfirmed||!humanCategory||pending" @click="handoff">确认转人工并建单</el-button></div></section><div v-if="current.citations.length" class="assist-citations">
           <h3>参考资料 · {{ current.citations.length }} 条</h3>
           <details v-for="citation in current.citations" :key="citation.id">
             <summary>{{ citation.title }}</summary>

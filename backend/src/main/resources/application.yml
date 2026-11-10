@@ -39,6 +39,14 @@ management:
     health:
       show-details: never
 app:
+  workflows:
+    auto-assign: ${SERVICEFLOW_AUTO_ASSIGN:true}
+    agent-capacity: ${SERVICEFLOW_AGENT_CAPACITY:10}
+    first-response-minutes: ${SERVICEFLOW_FIRST_RESPONSE_MINUTES:60}
+    resolution-minutes: ${SERVICEFLOW_RESOLUTION_MINUTES:1440}
+    scan-enabled: ${SERVICEFLOW_WORKFLOW_SCAN_ENABLED:true}
+    scan-delay-ms: ${SERVICEFLOW_WORKFLOW_SCAN_DELAY_MS:30000}
+    scan-batch-size: ${SERVICEFLOW_WORKFLOW_SCAN_BATCH_SIZE:100}
   ai:
     enabled: ${SERVICEFLOW_AI_ENABLED:false}
     url: ${SERVICEFLOW_AI_URL:http://127.0.0.1:18082}

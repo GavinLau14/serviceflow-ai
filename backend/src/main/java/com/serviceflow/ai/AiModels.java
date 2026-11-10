@@ -40,6 +40,8 @@ public final class AiModels {
     public long customerId;
     public String responseJson;
     public String messageHash;
+    public String originalMessage;
+    public boolean handoffRequested;
     public long latencyMs;
     public Long ticketId;
     public java.time.LocalDateTime createdAt;

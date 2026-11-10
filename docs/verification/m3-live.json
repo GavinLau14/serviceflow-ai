@@ -1,0 +1,14 @@
+{
+  "closedTicket": 12,
+  "publishedKnowledge": 1,
+  "handoffTicket": 13,
+  "handoffRepeatedSameTicket": true,
+  "autoAssignedAgent": 3,
+  "scan": {
+    "scanned": 8,
+    "escalated": 8,
+    "delivered": 52
+  },
+  "customerNotices": 11,
+  "staffAuditRows": 7
+}

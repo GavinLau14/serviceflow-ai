@@ -20,6 +20,8 @@ public class AiController {
 
   public record Consent(boolean confirmed) {}
 
+  public record HandoffRequest(boolean confirmed, @NotNull com.serviceflow.ticket.TicketRequests.Category category) {}
+
   @PostMapping("/assist")
   public AiModels.RunView assist(@AuthenticationPrincipal User u, @Valid @RequestBody Ask ask) {
     return service.assist(u, ask.message());
@@ -34,6 +36,12 @@ public class AiController {
   public Ticket execute(
       @AuthenticationPrincipal User u, @PathVariable String id, @Valid @RequestBody Consent req) {
     return service.execute(u, id, req.confirmed());
+  }
+
+  @PostMapping("/runs/{id}/handoff")
+  public Ticket handoff(
+      @AuthenticationPrincipal User u, @PathVariable String id, @Valid @RequestBody HandoffRequest req) {
+    return service.handoff(u, id, req.confirmed(), req.category());
   }
 
   @PostMapping("/index")

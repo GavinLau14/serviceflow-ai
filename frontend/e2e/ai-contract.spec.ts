@@ -129,3 +129,13 @@ test("fake contract: admin alone sees index action and service status", async ({
   await page.getByRole("button", { name: "更新演示知识库索引" }).click();
   await expect(page.locator(".index-result")).toContainText('"status": "indexed"');
 });
+
+test("fake contract: human handoff requires product category and explicit consent", async ({page})=>{
+ await setup(page);let calls=0;
+ await page.route("**/api/ai/assist",r=>r.fulfill({json:retrieval}));
+ await page.route("**/api/ai/runs/10/handoff",async route=>{calls++;expect(route.request().postDataJSON()).toEqual({confirmed:true,category:"APPLIANCE"});await route.fulfill({json:ticket});});
+ await openAssist(page);await page.getByLabel("遇到了什么问题？",{exact:true}).fill("空调无法制冷");await page.getByRole("button",{name:"查找帮助",exact:true}).click();
+ const execute=page.getByRole("button",{name:"确认转人工并建单",exact:true});await expect(execute).toBeDisabled();expect(calls).toBe(0);
+ await page.getByLabel("服务分类",{exact:true}).press("ArrowDown");await page.getByRole("option",{name:"家用电器",exact:true}).click();await expect(execute).toBeDisabled();
+ await page.getByText("我同意将本次问题转人工并创建工单",{exact:true}).click();await execute.click();await expect(page.getByRole("heading",{name:ticket.title,exact:true})).toBeVisible();expect(calls).toBe(1);
+});

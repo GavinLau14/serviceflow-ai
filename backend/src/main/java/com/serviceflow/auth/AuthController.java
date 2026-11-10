@@ -60,7 +60,7 @@ public class AuthController {
   public Map<String, Object> capabilities() {
     return Map.of(
         "milestone",
-        "M2",
+        "M3",
         "aiMode",
         ai.enabled() ? "enabled" : "disabled",
         "ragEnabled",
