@@ -9,3 +9,5 @@
 .superpowers/
 *.log
 .DS_Store
+.cache/
+**/.cache/

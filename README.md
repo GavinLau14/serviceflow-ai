@@ -1,0 +1,133 @@
+# ServiceFlow AI · 智能售后工单协同平台
+
+面向 Java 后端 + AI 应用工程实习的独立作品：客户提出售后问题，主管分派，客服处理并提交解决方案，客户确认后关闭。以可验证的数据权限、状态机与并发一致性作为业务基础。
+
+**当前交付：M1 工单核心。AI / RAG / LangGraph 尚未实现。** 前端与 API 明确 `aiMode=disabled`，没有把规则或预制回复包装成真实 RAG。M2–M4 计划见 [任务清单](docs/TASKS.md)。无生产部署、无远程推送。
+
+## 架构
+
+```mermaid
+flowchart LR
+  C[客户 / 客服 / 主管 / 管理员] --> V[Vue 3 + TypeScript + Element Plus]
+  V --> S[Spring Security / Redis 可撤销会话]
+  S --> J[Java 21 / Spring Boot 3.5 / 业务 Service]
+  J --> M[MyBatis / Flyway]
+  M --> DB[(独立 MySQL 8.4)]
+  S --> R[(独立 Redis 7.4)]
+  J -. M2 受限推理请求 .-> AI[FastAPI + LangGraph · 待实现]
+  AI -. M2 embedding / 检索 .-> Q[(Qdrant · 待实现)]
+  AI -. 类型化提案 / 引用 .-> J
+```
+
+Java 是唯一业务写入方。未来 Python 不持有业务数据库凭据；所有工具写入都必须由 Java 校验身份、数据范围、显式授权、版本和幂等性。设计取舍见 [ADR](docs/adr/0001-business-and-ai-boundary.md)。四个参考项目的实际审阅结果、许可证和固定提交见 [技术评估](docs/REFERENCE_REVIEW.md) 与 [第三方记录](THIRD_PARTY_NOTICES.md)，未直接复制其源码。
+
+## 环境与隔离
+
+- JDK 21、Maven 3.9+、Node 22.12+（本机验证为 Node 24）、Docker Compose v2，Python 3.9+ 仅用于本地演示数据脚本。
+- Python AI 服务将使用 3.12，M1 无需安装模型相关依赖。
+- Compose 项目名 `serviceflow`；MySQL 数据库 `serviceflow` / 测试 `serviceflow_test`。
+- 业务 MySQL `127.0.0.1:13318`、Redis `16389`；测试 MySQL `13319`、Redis `16390`；API `18081`、前端 `15173`。
+- 服务仅监听本机，卷与容器独立于其他项目。不使用已有 ProcureGuard 数据库或服务。
+
+## 启动
+
+在本仓库根目录执行：
+
+```bash
+./scripts/init-local.sh
+# 随机生成本地 .env，已有文件不会覆盖；不要提交或共享该文件。
+docker compose up -d --wait mysql redis
+./scripts/run-api.sh
+```
+
+另一个终端：
+
+```bash
+npm --prefix frontend ci
+npm --prefix frontend run dev
+```
+
+打开 [工作台](http://127.0.0.1:15173)。健康检查 [API health](http://127.0.0.1:18081/actuator/health)。初次运行会在显式启用 demo 的脚本下创建演示用户；正常应用默认不播种账号。业务表由 Flyway 迁移，禁止自动 DDL。
+
+| 账号 | 角色 | 数据范围 |
+|---|---|---|
+| alice / bob | 客户 | 各自提交的工单 |
+| agent | 数码组客服 | 分派给自己的工单 |
+| supervisor | 数码组主管 | 数码组全部工单 |
+| otheragent / otherlead | 家电组客服 / 主管 | 对应家电组范围 |
+| admin | 管理员 | 全部工单；仍不能替客户确认解决 |
+
+演示账号共用本地 `.env` 中 `SERVICEFLOW_DEMO_PASSWORD`；页面不预填密码。本项目不附带真实服务凭据。修改该变量不会重写已存在账号的密码散列；演示库首次初始化后应保留原配置。
+
+可选演示数据（API 已启动后）：
+
+```bash
+set -a
+source .env
+set +a
+python3 scripts/seed-demo.py
+```
+
+脚本经 Java REST API 创建 5 张不同状态的售后工单，匹配标题已存在时跳过；仅用于演示，不作为正式导入接口。
+
+## 演示路径
+
+1. `alice` 提交数码设备问题，查看待分派状态。
+2. `supervisor` 打开工单，选择 `agent`，勾选确认并分派。
+3. `agent` 开始处理，可回复或添加客户不可见的内部备注；填写实际解决方案后提交。
+4. `alice` 阅读轨迹，可选择“仍未解决”退回；问题解决后显式确认并关闭。
+5. 使用 `bob`、`otheragent` 验证无法访问这张工单；`admin` 可查看全局，但不能替客户关闭。
+
+状态：`OPEN → ASSIGNED → IN_PROGRESS → WAITING_CUSTOMER → CLOSED`，客户拒绝返回 `IN_PROGRESS`。并发更新基于 version 比较，过期请求返回 409。每次成功流转与业务数据在同一事务提交。
+
+## 测试与构建
+
+```bash
+./scripts/test.sh
+# 独立测试 MySQL/Redis → mvn verify → npm ci → 类型检查 + Vite build
+```
+
+浏览器测试需业务 API 与 Vite 正在运行：
+
+```bash
+set -a
+source .env
+set +a
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
+`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 同时提交两次真实 MySQL 更新并检查一次成功；`LoginRateLimitTest` 检查 Redis 限流。无 H2 替代，无测试覆盖率宣称。实际结果与限制见 [M1 验证记录](docs/M1_RESULTS.md)。GitHub Actions 工作流已配置；未推送，因此没有远程 CI 成功记录。
+
+## 演示截图
+
+![客户确认关闭后的真实工作台](docs/images/lifecycle-desktop.png)
+
+## 目录
+
+```text
+backend/       auth / ticket / common，MyBatis mapper、Flyway、JUnit 集成测试
+frontend/      Vue 工作台、API 类型、组件、Playwright 业务闭环
+ai-service/    M2 边界说明，尚无 AI 实现
+scripts/       本地配置、API 启动、测试、幂等演示数据
+infra/         保留后续应用容器配置位置
+compose.yaml   业务与测试 MySQL / Redis
+.github/       CI 配置
+docs/         上游评估、设计、接口、ADR、里程碑验证、任务清单
+```
+
+[REST API 文档](docs/API.md) 包含请求、权限、错误码与 curl 示例。M1 暂用手写文档，OpenAPI 导出为后续工作。
+
+项目 `.npmrc` 使用仓库内 `.cache/npm`，避免依赖本机全局 npm 缓存权限。该缓存不提交。
+
+## 当前局限
+
+- 没有真实模型、向量检索、Agent、自动分派、SLA、通知或知识沉淀；它们属于后续里程碑。流转事件不是完整安全审计。
+- 尚无自助注册、密码重置/修改、附件、实时聊天、退款执行、多租户、客户组织结构；团队由产品分类固定映射，仅为 M1 范围。
+- 本地 bearer 存 sessionStorage；生产需独立评估 XSS/CSP、HTTPS、SSO、密钥管理及备份。Redis 当前只绑定本机，未配置生产认证/集群，不能直接暴露公网。
+- 登录按源地址每分钟限流；代理地址信任、共享出口与多实例运维仍需设计。没有压测、渗透测试或完整依赖安全审计结论。
+- Compose 当前只容器化 M1 基础设施；Java/前端本机运行，包含 Python/Qdrant 的完整应用容器交付在 M4。
+- Flyway 11.7.2 实际迁移通过，但对 MySQL 8.4 输出“版本未正式测试”警告；正式部署前应升级核验兼容版本。JDK 测试输出包含 Mockito 动态 agent 警告，未影响结果。
+
+停止本地 API/前端可在对应终端 Ctrl+C；`docker compose --profile test stop` 只停止本项目容器并保留业务卷。不要使用 `down -v`，除非确实要销毁本项目演示数据。

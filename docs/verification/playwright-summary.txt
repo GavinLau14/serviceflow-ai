@@ -1,0 +1,12 @@
+
+> serviceflow-web@0.1.0 test:e2e
+> playwright test
+
+
+Running 1 test using 1 worker
+
+(node:27058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/workflow.spec.ts:16:1 › 客户提交 → 主管分派 → 客服处理 → 客户确认关闭 (3.9s)
+
+  1 passed (4.2s)

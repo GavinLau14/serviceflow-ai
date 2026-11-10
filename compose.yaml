@@ -1,0 +1,53 @@
+name: serviceflow
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: serviceflow
+      MYSQL_USER: serviceflow
+      MYSQL_PASSWORD: ${SERVICEFLOW_DB_PASSWORD:?run scripts/init-local.sh}
+      MYSQL_ROOT_PASSWORD: ${SERVICEFLOW_ROOT_PASSWORD:?run scripts/init-local.sh}
+    ports: ["127.0.0.1:13318:3306"]
+    volumes: ["mysql-data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h127.0.0.1 -u$$MYSQL_USER -Dserviceflow -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  redis:
+    image: redis:7.4-alpine
+    ports: ["127.0.0.1:16389:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  mysql-test:
+    profiles: [test]
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: serviceflow_test
+      MYSQL_USER: serviceflow
+      MYSQL_PASSWORD: ${SERVICEFLOW_DB_PASSWORD:?run scripts/init-local.sh}
+      MYSQL_ROOT_PASSWORD: ${SERVICEFLOW_ROOT_PASSWORD:?run scripts/init-local.sh}
+    ports: ["127.0.0.1:13319:3306"]
+    tmpfs: [/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h127.0.0.1 -u$$MYSQL_USER -Dserviceflow_test -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  redis-test:
+    profiles: [test]
+    image: redis:7.4-alpine
+    ports: ["127.0.0.1:16390:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  mysql-data:
+  redis-data:

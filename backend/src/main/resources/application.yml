@@ -1,0 +1,47 @@
+server:
+  port: ${SERVICEFLOW_API_PORT:18081}
+  address: ${SERVICEFLOW_BIND:127.0.0.1}
+  error:
+    include-message: never
+spring:
+  application:
+    name: serviceflow-api
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${SERVICEFLOW_JDBC_URL:jdbc:mysql://127.0.0.1:13318/serviceflow?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
+    username: serviceflow
+    password: ${SERVICEFLOW_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+  data:
+    redis:
+      host: ${SERVICEFLOW_REDIS_HOST:127.0.0.1}
+      port: ${SERVICEFLOW_REDIS_PORT:16389}
+      connect-timeout: 2s
+      timeout: 2s
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  flyway:
+    enabled: true
+mybatis:
+  mapper-locations: classpath:mappers/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    arg-name-based-constructor-auto-mapping: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+app:
+  demo:
+    enabled: ${SERVICEFLOW_DEMO_ENABLED:false}
+    password: ${SERVICEFLOW_DEMO_PASSWORD:}
+  auth:
+    ttl-minutes: 120
+    login-limit: 15

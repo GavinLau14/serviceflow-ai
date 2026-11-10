@@ -1,0 +1,66 @@
+name: M1 verification
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Public CI fixtures, not production credentials.
+      SERVICEFLOW_DB_PASSWORD: ci-test-only-password
+      SERVICEFLOW_DEMO_PASSWORD: Test-Only-Password-123!
+      SERVICEFLOW_JDBC_URL: jdbc:mysql://127.0.0.1:13319/serviceflow_test?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      SERVICEFLOW_REDIS_PORT: 16390
+      SERVICEFLOW_DEMO_ENABLED: true
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: serviceflow_test
+          MYSQL_USER: serviceflow
+          MYSQL_PASSWORD: ci-test-only-password
+          MYSQL_ROOT_PASSWORD: ci-root-only-password
+        ports: ['13319:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+      redis:
+        image: redis:7.4-alpine
+        ports: ['16390:6379']
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: mvn -B -f backend/pom.xml verify
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run build
+      - run: npx --prefix frontend playwright install --with-deps chromium
+      - name: Browser business workflow
+        shell: bash
+        run: |
+          java -jar backend/target/serviceflow-api-0.1.0.jar > api.log 2>&1 &
+          npm --prefix frontend run dev > web.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:18081/actuator/health && curl -fsS http://127.0.0.1:15173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          npm --prefix frontend run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-evidence
+          path: |
+            backend/target/surefire-reports/
+            frontend/test-results/
+            api.log
+            web.log

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.serviceflow.ticket.TicketMapper">
+  <sql id="scope">
+    <choose>
+      <when test="actor.role == 'CUSTOMER'">t.customer_id = #{actor.id}</when>
+      <when test="actor.role == 'AGENT'">t.assignee_id = #{actor.id}</when>
+      <when test="actor.role == 'SUPERVISOR'">t.team_id = #{actor.teamId}</when>
+      <when test="actor.role == 'ADMIN'">1=1</when>
+      <otherwise>1=0</otherwise>
+    </choose>
+  </sql>
+  <sql id="filters">
+    <include refid="scope"/>
+    <if test="status != null">AND t.status = #{status}</if>
+    <if test="q != null">AND (LOCATE(#{q},t.title) &gt; 0 OR LOCATE(#{q},t.reference) &gt; 0)</if>
+  </sql>
+  <sql id="selectTicket">SELECT t.*,c.display_name customer_name,a.display_name assignee_name FROM tickets t JOIN users c ON c.id=t.customer_id LEFT JOIN users a ON a.id=t.assignee_id</sql>
+  <select id="find" resultType="com.serviceflow.ticket.Ticket"><include refid="selectTicket"/> WHERE t.id=#{id} AND <include refid="scope"/></select>
+  <select id="list" resultType="com.serviceflow.ticket.Ticket"><include refid="selectTicket"/> WHERE <include refid="filters"/> ORDER BY t.created_at DESC,t.id DESC LIMIT #{limit} OFFSET #{offset}</select>
+  <select id="count" resultType="long">SELECT COUNT(*) FROM tickets t WHERE <include refid="filters"/></select>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO tickets(reference,title,description,category,priority,status,customer_id,team_id,assignee_id,version) VALUES(#{reference},#{title},#{description},#{category},#{priority},#{status},#{customerId},#{teamId},#{assigneeId},0)</insert>
+  <update id="update">UPDATE tickets SET status=#{status},assignee_id=#{assigneeId},version=version+1,updated_at=CURRENT_TIMESTAMP(6) WHERE id=#{id} AND version=#{version}</update>
+  <select id="comments" resultType="com.serviceflow.ticket.TicketMapper$CommentView">
+    SELECT c.id,c.author_id,u.display_name author_name,c.body,c.internal,c.created_at FROM ticket_comments c JOIN users u ON u.id=c.author_id WHERE c.ticket_id=#{id}<if test="customer"> AND c.internal=FALSE</if> ORDER BY c.id
+  </select>
+  <select id="events" resultType="com.serviceflow.ticket.TicketMapper$EventView">SELECT e.id,u.display_name actor_name,e.action,e.from_status,e.to_status,e.message,e.created_at FROM ticket_events e JOIN users u ON u.id=e.actor_id WHERE e.ticket_id=#{id} ORDER BY e.id</select>
+</mapper>
