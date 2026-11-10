@@ -1,0 +1,39 @@
+{
+  "index": {
+    "indexed": 3,
+    "collection": "serviceflow_paraphrase_multilingual_minilm_l12_384_v1",
+    "demo": true
+  },
+  "positive": {
+    "id": "47ccb71d-f44b-40fd-98e6-fdec886ecdd9",
+    "mode": "retrieval_only",
+    "intent": "UNKNOWN",
+    "answer": "以下仅为演示知识原文，未进行模型推理，尚未创建工单：\n【虚构演示知识，非真实服务政策】空调无法制冷、空调不制冷可提交家电 APPLIANCE 报修。描述应记录用户原话和故障现象。系统仅形成待确认草稿，客户确认后才创建工单；不承诺到达时间、价格或保修。",
+    "confidence": 0.0,
+    "handoff": true,
+    "citations": [
+      {
+        "id": "demo-appliance-ac",
+        "title": "演示知识：空调报修",
+        "source": "demo://serviceflow/appliance-ac/v1",
+        "text": "【虚构演示知识，非真实服务政策】空调无法制冷、空调不制冷可提交家电 APPLIANCE 报修。描述应记录用户原话和故障现象。系统仅形成待确认草稿，客户确认后才创建工单；不承诺到达时间、价格或保修。",
+        "score": 0.56801224
+      }
+    ],
+    "proposal": null,
+    "status": "NO_ACTION",
+    "ticketId": null
+  },
+  "negative": {
+    "id": "f72a0d89-19b3-4ed3-aaf5-8dedda65fd53",
+    "mode": "retrieval_only",
+    "intent": "UNKNOWN",
+    "answer": "未找到足够的演示知识依据，请转人工处理；尚未创建工单。",
+    "confidence": 0.0,
+    "handoff": true,
+    "citations": [],
+    "proposal": null,
+    "status": "NO_ACTION",
+    "ticketId": null
+  }
+}

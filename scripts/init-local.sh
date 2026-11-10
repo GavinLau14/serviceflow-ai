@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-if [[ -e .env ]]; then echo '.env already exists; preserved.'; exit 0; fi
+# Preserve existing configuration; append only a missing internal AI secret.
 umask 077
 python3 - <<'PY'
 import secrets
 from pathlib import Path
-Path('.env').write_text(''.join(f'{k}={secrets.token_hex(20)}\n' for k in ['SERVICEFLOW_DB_PASSWORD','SERVICEFLOW_ROOT_PASSWORD','SERVICEFLOW_DEMO_PASSWORD'])+'AI_MODE=disabled\n')
+p=Path('.env')
+if p.exists():
+    if 'SERVICEFLOW_AI_SERVICE_TOKEN=' not in p.read_text():
+        with p.open('a') as f: f.write('\nSERVICEFLOW_AI_SERVICE_TOKEN='+secrets.token_hex(32)+'\n')
+    raise SystemExit(0)
+p.write_text(''.join(f'{k}={secrets.token_hex(20)}\n' for k in ['SERVICEFLOW_DB_PASSWORD','SERVICEFLOW_ROOT_PASSWORD','SERVICEFLOW_DEMO_PASSWORD','SERVICEFLOW_AI_SERVICE_TOKEN'])+'SERVICEFLOW_AI_ENABLED=false\n')
 PY
-echo 'Generated local-only .env. Demo password is SERVICEFLOW_DEMO_PASSWORD in this file.'
+echo 'Local .env ready; existing values preserved. Demo password is SERVICEFLOW_DEMO_PASSWORD.'

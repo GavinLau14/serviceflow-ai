@@ -17,8 +17,14 @@ public class AuthController {
   private final SessionService sessions;
   private final PasswordEncoder passwords;
   private final String dummy;
+  private final com.serviceflow.ai.AiGateway ai;
 
-  public AuthController(UserMapper users, SessionService sessions, PasswordEncoder passwords) {
+  public AuthController(
+      UserMapper users,
+      SessionService sessions,
+      PasswordEncoder passwords,
+      com.serviceflow.ai.AiGateway ai) {
+    this.ai = ai;
     this.users = users;
     this.sessions = sessions;
     this.passwords = passwords;
@@ -54,13 +60,13 @@ public class AuthController {
   public Map<String, Object> capabilities() {
     return Map.of(
         "milestone",
-        "M1",
+        "M2",
         "aiMode",
-        "disabled",
+        ai.enabled() ? "enabled" : "disabled",
         "ragEnabled",
-        false,
+        ai.enabled(),
         "message",
-        "AI 服务尚未接入；当前由人工处理，不提供自动政策建议");
+        ai.enabled() ? "AI 已配置，实际检索及模型状态以每次响应为准" : "AI 尚未启用，请人工处理");
   }
 
   @GetMapping("/agents")

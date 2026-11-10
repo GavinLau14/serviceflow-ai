@@ -10,12 +10,12 @@
 - [x] 最终构建、完整测试与浏览器闭环（实际结果见 M1_RESULTS.md）
 - [x] 本地 M1 commit（无远程，见 git log）
 
-## M2
-- [ ] 独立 FastAPI / LangGraph、配置验证与 pytest
-- [ ] 真实 embedding / Qdrant 索引与查询；模型、维度、版本追踪
-- [ ] 意图/字段结构化输出；引用可回溯；证据不足转人工
-- [ ] 工具提案、显式授权、受限服务身份、幂等执行、AI 调用日志
-- [ ] 有 Key 的真实模型验证；无 Key 明确 disabled；检索正负种子回归
+## M2 — 实现交付，远端模型验收待配置
+- [x] 独立 FastAPI / LangGraph、配置验证与 pytest
+- [x] 真实 embedding / Qdrant 索引与查询；模型、维度、版本追踪
+- [x] 意图/字段结构化输出；引用可回溯；证据不足转人工
+- [x] 工具提案、显式授权、受限服务身份、幂等执行、AI 调用日志
+- [ ] 有 Key 的真实 LLM/Tool Calling 验收（待本地配置）；真实 Embedding/Qdrant 正负检索已验证，无 Key 为 retrieval_only
 
 ## M3
 - [ ] 会话与人工接管、规则自动分派、负载/并发边界

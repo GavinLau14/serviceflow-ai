@@ -1,0 +1,17 @@
+
+> serviceflow-web@0.1.0 test:e2e
+> playwright test
+
+
+Running 6 tests using 1 worker
+
+(node:29364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/ai-contract.spec.ts:41:1 › fake contract: retrieval extracts stay escaped and cannot execute; request errors recover (1.6s)
+  ✓  2 e2e/ai-contract.spec.ts:69:1 › fake contract: persisted drafts require explicit confirmation and emit created ticket (1.2s)
+  ✓  3 e2e/ai-contract.spec.ts:97:1 › fake contract: disabled and error modes offer manual recovery (690ms)
+  ✓  4 e2e/ai-contract.spec.ts:111:1 › fake contract: expired history cannot execute a proposal (579ms)
+  ✓  5 e2e/ai-contract.spec.ts:120:1 › fake contract: admin alone sees index action and service status (335ms)
+  ✓  6 e2e/workflow.spec.ts:16:1 › 客户提交 → 主管分派 → 客服处理 → 客户确认关闭 (4.8s)
+
+  6 passed (9.5s)

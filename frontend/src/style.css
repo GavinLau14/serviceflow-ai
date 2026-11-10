@@ -1043,6 +1043,141 @@ main {
     gap: 28px;
   }
 }
+.page-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.page-actions .el-button + .el-button {
+  margin-left: 0;
+}
+.assist-content {
+  display: grid;
+  gap: 24px;
+}
+.assist-content h3 {
+  font-size: 14px;
+}
+.assist-result,
+.assist-history {
+  display: grid;
+  gap: 18px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.assist-result .section-title {
+  flex-wrap: wrap;
+}
+.assist-citations {
+  display: grid;
+  gap: 12px;
+}
+.assist-citations details {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 13px 15px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.assist-citations summary {
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.7;
+}
+.assist-source {
+  margin: 12px 0 6px;
+}
+.assist-draft {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.assist-draft dt {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.assist-draft dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.assist-proposal .el-checkbox {
+  height: auto;
+  white-space: normal;
+}
+.assist-proposal .el-checkbox__label {
+  white-space: normal;
+  line-height: 1.6;
+  font-size: 12px;
+}
+.assist-history-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.assist-history-list button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.assist-history-list button[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand-pale);
+}
+.assist-history-list button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.assist-history-list span,
+.assist-history-list small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.assist-history-list strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin: 7px 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.index-result {
+  margin-bottom: 20px;
+}
+.index-result pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .page-heading:has(.page-actions) {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .page-actions {
+    width: 100%;
+  }
+  .page-actions .el-button {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

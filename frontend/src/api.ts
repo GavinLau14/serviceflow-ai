@@ -57,6 +57,30 @@ export interface TicketPage {
   page: number;
   size: number;
 }
+export interface Capabilities {
+  milestone: string;
+  aiMode: "enabled" | "disabled";
+  ragEnabled: boolean;
+  message: string;
+}
+export type AiMode = "rag" | "retrieval_only" | "disabled" | "error";
+export interface AiRun {
+  id: string;
+  mode: AiMode;
+  intent: string;
+  answer: string;
+  confidence: number;
+  handoff: boolean;
+  citations: { id: string; title: string; source: string; text: string; score: number }[];
+  proposal: null | {
+    title: string;
+    description: string;
+    category: "DEVICE" | "APPLIANCE";
+    priority: "NORMAL" | "HIGH";
+  };
+  status: "PENDING" | "COMPLETED" | "NO_ACTION" | "EXPIRED";
+  ticketId: number | null;
+}
 export const statusNames: Record<Status, string> = {
   OPEN: "待分派",
   ASSIGNED: "已分派",

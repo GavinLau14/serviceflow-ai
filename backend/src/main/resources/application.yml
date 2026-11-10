@@ -39,6 +39,10 @@ management:
     health:
       show-details: never
 app:
+  ai:
+    enabled: ${SERVICEFLOW_AI_ENABLED:false}
+    url: ${SERVICEFLOW_AI_URL:http://127.0.0.1:18082}
+    token: ${SERVICEFLOW_AI_SERVICE_TOKEN:}
   demo:
     enabled: ${SERVICEFLOW_DEMO_ENABLED:false}
     password: ${SERVICEFLOW_DEMO_PASSWORD:}

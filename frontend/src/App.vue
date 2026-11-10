@@ -27,6 +27,7 @@ import {
   type Ticket,
   type TicketPage,
   type Status,
+  type Capabilities,
   statusNames,
   priorityNames,
   roleNames,
@@ -35,6 +36,7 @@ import {
 import LoginPanel from "./components/LoginPanel.vue";
 import CreateTicket from "./components/CreateTicket.vue";
 import TicketDetail from "./components/TicketDetail.vue";
+import AiAssist from "./components/AiAssist.vue";
 const user = ref<User | null>(null),
   initializing = ref(true),
   items = ref<Ticket[]>([]),
@@ -46,6 +48,35 @@ const user = ref<User | null>(null),
   createOpen = ref(false),
   busy = ref(false),
   error = ref("");
+const assistOpen = ref(false), capabilities = ref<Capabilities | null>(null),
+  capabilityError = ref(""), indexing = ref(false), indexError = ref(""), indexResult = ref("");
+let session = 0;
+const aiLabel = computed(() => capabilityError.value ? "助手状态暂不可用" : !capabilities.value ? "正在获取助手状态" : capabilities.value.aiMode === "enabled" ? "AI 助手已配置" : "AI 服务未启用");
+async function loadCapabilities() {
+  const n = session;
+  capabilityError.value = "";
+  try {
+    const result = await api<Capabilities>("/capabilities");
+    if (n === session) capabilities.value = result;
+  } catch (e) {
+    if (n === session) capabilityError.value = e instanceof Error ? e.message : "状态获取失败";
+  }
+}
+async function indexKnowledge() {
+  if (indexing.value || user.value?.role !== "ADMIN") return;
+  const n = session;
+  indexing.value = true;
+  indexError.value = "";
+  indexResult.value = "";
+  try {
+    const result = await api<Record<string, unknown>>("/ai/index", {});
+    if (n === session) indexResult.value = JSON.stringify(result, null, 2);
+  } catch (e) {
+    if (n === session) indexError.value = e instanceof Error ? e.message : "索引请求失败，请重试";
+  } finally {
+    if (n === session) indexing.value = false;
+  }
+}
 const heading = computed(() =>
   user.value?.role === "CUSTOMER"
     ? "我的售后问题"
@@ -89,6 +120,7 @@ async function load() {
   }
 }
 function resetSession() {
+  session++;
   sessionStorage.removeItem("sf_token");
   user.value = null;
   selected.value = null;
@@ -96,14 +128,22 @@ function resetSession() {
   total.value = 0;
   request++;
   busy.value = false;
+  assistOpen.value = false;
+  createOpen.value = false;
+  capabilities.value = null;
+  capabilityError.value = "";
+  indexResult.value = "";
+  indexError.value = "";
+  indexing.value = false;
 }
 async function loggedIn(u: User) {
+  session++;
   user.value = u;
   q.value = "";
   status.value = "";
   page.value = 1;
   selected.value = null;
-  await load();
+  await Promise.all([load(), loadCapabilities()]);
 }
 async function logout() {
   try {
@@ -130,7 +170,7 @@ onMounted(async () => {
   try {
     if (sessionStorage.getItem("sf_token")) {
       user.value = await api<User>("/auth/me");
-      await load();
+      await Promise.all([load(), loadCapabilities()]);
     }
   } catch (e) {
     resetSession();
@@ -160,8 +200,9 @@ onUnmounted(() =>
         <div class="ai-indicator">
           <el-icon><Connection /></el-icon>
           <div>
-            <strong>AI 助手尚未接入</strong>
-            <p>当前工单由人工处理</p>
+            <strong>{{ aiLabel }}</strong>
+            <p>{{ capabilityError || capabilities?.message || "正在连接服务" }}</p>
+            <el-button v-if="capabilityError" text size="small" @click="loadCapabilities">重试状态</el-button>
           </div>
         </div>
         <div class="profile">
@@ -177,7 +218,7 @@ onUnmounted(() =>
       <header class="topbar">
         <span>服务中心 <span class="slash">/</span> 工单工作台</span>
         <div>
-          <span class="environment-badge">本地演示 · M1</span
+          <span class="environment-badge">本地演示 · {{ capabilities?.milestone || '…' }}</span
           ><el-button
             :icon="SwitchButton"
             text
@@ -193,13 +234,20 @@ onUnmounted(() =>
             <h1>{{ heading }}</h1>
             <p>{{ scope }}</p>
           </div>
+          <div v-if="user.role === 'CUSTOMER'" class="page-actions">
+          <el-button @click="assistOpen = true">售后 AI 助手</el-button>
           <el-button
-            v-if="user.role === 'CUSTOMER'"
             type="primary"
             :icon="Plus"
             @click="createOpen = true"
             >提交售后问题</el-button
           >
+          </div>
+          <el-button v-if="user.role === 'ADMIN'" :loading="indexing" @click="indexKnowledge">更新演示知识库索引</el-button>
+        </div>
+        <div v-if="user.role === 'ADMIN' && (indexError || indexResult)" class="index-result" aria-live="polite">
+          <el-alert v-if="indexError" :title="indexError" type="error" :closable="false" role="alert" />
+          <template v-else><p class="muted">知识库索引服务返回：</p><pre>{{ indexResult }}</pre></template>
         </div>
         <div class="workspace" :class="{ 'has-selection': selected !== null }">
           <section class="queue-panel">
@@ -345,5 +393,6 @@ onUnmounted(() =>
       </footer>
     </div>
     <CreateTicket v-model="createOpen" @created="created" />
+    <AiAssist v-if="user.role === 'CUSTOMER'" :key="user.id" v-model="assistOpen" @created="created" @manual="createOpen = true" />
   </div>
 </template>

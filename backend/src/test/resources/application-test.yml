@@ -8,6 +8,8 @@ spring:
       host: 127.0.0.1
       port: 16390
 app:
+  ai:
+    enabled: false
   demo:
     enabled: true
     password: Test-Only-Password-123!

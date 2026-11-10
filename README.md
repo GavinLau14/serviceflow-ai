@@ -2,7 +2,7 @@
 
 面向 Java 后端 + AI 应用工程实习的独立作品：客户提出售后问题，主管分派，客服处理并提交解决方案，客户确认后关闭。以可验证的数据权限、状态机与并发一致性作为业务基础。
 
-**当前交付：M1 工单核心。AI / RAG / LangGraph 尚未实现。** 前端与 API 明确 `aiMode=disabled`，没有把规则或预制回复包装成真实 RAG。M2–M4 计划见 [任务清单](docs/TASKS.md)。无生产部署、无远程推送。
+**当前交付：M1 工单核心 + M2 AI 服务。** 已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。M3–M4 计划见 [任务清单](docs/TASKS.md)。无生产部署、无远程推送。
 
 ## 架构
 
@@ -14,17 +14,17 @@ flowchart LR
   J --> M[MyBatis / Flyway]
   M --> DB[(独立 MySQL 8.4)]
   S --> R[(独立 Redis 7.4)]
-  J -. M2 受限推理请求 .-> AI[FastAPI + LangGraph · 待实现]
-  AI -. M2 embedding / 检索 .-> Q[(Qdrant · 待实现)]
+  J -. M2 受限推理请求 .-> AI[FastAPI + LangGraph]
+  AI -. M2 embedding / 检索 .-> Q[(Qdrant)]
   AI -. 类型化提案 / 引用 .-> J
 ```
 
-Java 是唯一业务写入方。未来 Python 不持有业务数据库凭据；所有工具写入都必须由 Java 校验身份、数据范围、显式授权、版本和幂等性。设计取舍见 [ADR](docs/adr/0001-business-and-ai-boundary.md)。四个参考项目的实际审阅结果、许可证和固定提交见 [技术评估](docs/REFERENCE_REVIEW.md) 与 [第三方记录](THIRD_PARTY_NOTICES.md)，未直接复制其源码。
+Java 是唯一业务写入方。Python 不持有业务数据库凭据；所有工具写入都必须由 Java 校验身份、数据范围、显式授权、版本和幂等性。设计取舍见 [ADR](docs/adr/0001-business-and-ai-boundary.md)。四个参考项目的实际审阅结果、许可证和固定提交见 [技术评估](docs/REFERENCE_REVIEW.md) 与 [第三方记录](THIRD_PARTY_NOTICES.md)，未直接复制其源码。
 
 ## 环境与隔离
 
 - JDK 21、Maven 3.9+、Node 22.12+（本机验证为 Node 24）、Docker Compose v2，Python 3.9+ 仅用于本地演示数据脚本。
-- Python AI 服务将使用 3.12，M1 无需安装模型相关依赖。
+- Python AI 服务使用 3.12，M2 需安装下述锁定依赖。
 - Compose 项目名 `serviceflow`；MySQL 数据库 `serviceflow` / 测试 `serviceflow_test`。
 - 业务 MySQL `127.0.0.1:13318`、Redis `16389`；测试 MySQL `13319`、Redis `16390`；API `18081`、前端 `15173`。
 - 服务仅监听本机，卷与容器独立于其他项目。不使用已有 ProcureGuard 数据库或服务。
@@ -70,6 +70,23 @@ python3 scripts/seed-demo.py
 
 脚本经 Java REST API 创建 5 张不同状态的售后工单，匹配标题已存在时跳过；仅用于演示，不作为正式导入接口。
 
+## M2 启动与模型配置
+
+```bash
+./scripts/init-local.sh   # 保留旧值，仅补充缺失的内部 AI token
+# 在本地 .env 增加 SERVICEFLOW_AI_ENABLED=true
+python3.12 -m venv ai-service/.venv
+ai-service/.venv/bin/pip install -r ai-service/requirements.lock
+docker compose --profile ai up -d qdrant
+./scripts/run-ai.sh
+```
+
+Java 在新终端运行 `./scripts/run-api.sh`（如果原服务仍在运行，先 Ctrl+C）。管理员 `admin` 在工作台点击“更新演示知识库索引”，首次会下载约240MB真实模型；随后客户打开“售后 AI 助手”，输入“空调不制冷需要维修”，可看到真实语义检索及引用。Qdrant 端口16333、Python18082均独立于其他项目。演示知识是虚构资料，不代表真实品牌政策。
+
+`run-ai.sh` 读取同一 `.env`，将 SERVICEFLOW_AI_SERVICE_TOKEN 映射到内部 AI_SERVICE_TOKEN。远端生成可选配置：AI_LLM_API_KEY、AI_LLM_BASE_URL、AI_LLM_MODEL；不把 Key 写入源码或聊天。未配置时不会用规则或模拟向量冒充模型。
+
+本地默认阈值0.45只适用于当前三条演示资料，尚未通过业务评测校准。生成回答采用保守的引用原文约束。AI 只生成待确认草稿，执行时 Java 校验本人、确认、30分钟有效期并锁行，重复请求只产生一张工单。[M2 API](docs/M2_API.md) / [M2 实际验证](docs/M2_RESULTS.md)。
+
 ## 演示路径
 
 1. `alice` 提交数码设备问题，查看待分派状态。
@@ -109,7 +126,7 @@ npm run test:e2e
 ```text
 backend/       auth / ticket / common，MyBatis mapper、Flyway、JUnit 集成测试
 frontend/      Vue 工作台、API 类型、组件、Playwright 业务闭环
-ai-service/    M2 边界说明，尚无 AI 实现
+ai-service/    FastAPI/LangGraph、模型适配器、真实向量检索、pytest/lockfile
 scripts/       本地配置、API 启动、测试、幂等演示数据
 infra/         保留后续应用容器配置位置
 compose.yaml   业务与测试 MySQL / Redis
@@ -123,11 +140,11 @@ docs/         上游评估、设计、接口、ADR、里程碑验证、任务清
 
 ## 当前局限
 
-- 没有真实模型、向量检索、Agent、自动分派、SLA、通知或知识沉淀；它们属于后续里程碑。流转事件不是完整安全审计。
+- M2 已验证真实本地 Embedding/Qdrant；没有配置远端 LLM Key，真实生成/工具调用的远端验收尚待完成。仅有三条演示知识，不能代表生产问答质量。自动分派、SLA、通知、知识沉淀仍属 M3；流转事件不是完整安全审计。
 - 尚无自助注册、密码重置/修改、附件、实时聊天、退款执行、多租户、客户组织结构；团队由产品分类固定映射，仅为 M1 范围。
 - 本地 bearer 存 sessionStorage；生产需独立评估 XSS/CSP、HTTPS、SSO、密钥管理及备份。Redis 当前只绑定本机，未配置生产认证/集群，不能直接暴露公网。
 - 登录按源地址每分钟限流；代理地址信任、共享出口与多实例运维仍需设计。没有压测、渗透测试或完整依赖安全审计结论。
-- Compose 当前只容器化 M1 基础设施；Java/前端本机运行，包含 Python/Qdrant 的完整应用容器交付在 M4。
+- Compose 当前容器化 MySQL/Redis/Qdrant；Java/前端本机运行，包含 Python/Qdrant 的完整应用容器交付在 M4。
 - Flyway 11.7.2 实际迁移通过，但对 MySQL 8.4 输出“版本未正式测试”警告；正式部署前应升级核验兼容版本。JDK 测试输出包含 Mockito 动态 agent 警告，未影响结果。
 
 停止本地 API/前端可在对应终端 Ctrl+C；`docker compose --profile test stop` 只停止本项目容器并保留业务卷。不要使用 `down -v`，除非确实要销毁本项目演示数据。
