@@ -1,0 +1,19 @@
+{
+  "restartPersistenceVerified": false,
+  "aiOutageFallbackVerified": true,
+  "baseUrl": "http://127.0.0.1:18080",
+  "status": "PASS",
+  "aiMode": "error",
+  "realRetrievalIndexed": null,
+  "ticketId": 17,
+  "ticketStatus": "CLOSED",
+  "handoffIdempotent": true,
+  "knowledgeId": 3,
+  "knowledgeStatus": "PUBLISHED",
+  "customerNotices": 39,
+  "scan": {
+    "scanned": 0,
+    "escalated": 0,
+    "delivered": 29
+  }
+}

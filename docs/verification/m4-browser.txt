@@ -1,0 +1,23 @@
+
+> serviceflow-web@0.1.0 test:e2e
+> playwright test
+
+
+Running 12 tests using 1 worker
+
+(node:38796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/ai-contract.spec.ts:41:1 › fake contract: retrieval extracts stay escaped and cannot execute; request errors recover (1.7s)
+  ✓   2 e2e/ai-contract.spec.ts:69:1 › fake contract: persisted drafts require explicit confirmation and emit created ticket (1.2s)
+  ✓   3 e2e/ai-contract.spec.ts:97:1 › fake contract: disabled and error modes offer manual recovery (708ms)
+  ✓   4 e2e/ai-contract.spec.ts:111:1 › fake contract: expired history cannot execute a proposal (633ms)
+  ✓   5 e2e/ai-contract.spec.ts:120:1 › fake contract: admin alone sees index action and service status (351ms)
+  ✓   6 e2e/ai-contract.spec.ts:133:1 › fake contract: human handoff requires product category and explicit consent (810ms)
+  ✓   7 e2e/operations-contract.spec.ts:16:1 › notifications mark read only on request and render escaped content (192ms)
+  ✓   8 e2e/operations-contract.spec.ts:28:1 › knowledge review requires explicit confirmation and scopes actions by role (289ms)
+  ✓   9 e2e/operations-contract.spec.ts:44:1 › closed ticket knowledge uses manual confirmed content and renders SLA and audit (276ms)
+  ✓  10 e2e/operations-contract.spec.ts:63:1 › notification errors recover through refresh and empty state stays truthful (283ms)
+  ✓  11 e2e/operations-contract.spec.ts:76:1 › customer ticket operations never request staff endpoints or expose their controls (599ms)
+  ✓  12 e2e/workflow.spec.ts:16:1 › 客户提交 → 主管分派 → 客服处理 → 客户确认关闭 (4.2s)
+
+  12 passed (11.8s)

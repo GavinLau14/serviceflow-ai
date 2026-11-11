@@ -1,0 +1,3 @@
+serviceflow-api:latest sha256:b736775ed535f1db937dfaaf40f26d5702488c3ffc8c88ef370d3f789b45d552 linux/arm64
+serviceflow-ai-service:latest sha256:88cc6cec0fa641feb0ac38febf7c0ed0ceff00280263843d4a9d9a3e2d292a91 linux/arm64
+serviceflow-web:latest sha256:3585ad281712df2776ae4cbd3be6e6bd32022a41db6f5ab2de1a7dd479ef7573 linux/arm64

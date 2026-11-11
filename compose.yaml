@@ -49,11 +49,71 @@ services:
       timeout: 3s
       retries: 20
   qdrant:
-    profiles: [ai]
+    profiles: [ai, stack]
     image: qdrant/qdrant:v1.16.3
     ports: ["127.0.0.1:16333:6333"]
     volumes: ["qdrant-data:/qdrant/storage"]
+  ai-service:
+    profiles: [stack]
+    build:
+      context: .
+      dockerfile: infra/ai.Dockerfile
+    environment:
+      AI_SERVICE_TOKEN: ${SERVICEFLOW_AI_SERVICE_TOKEN:?run scripts/init-local.sh}
+      AI_QDRANT_URL: http://qdrant:6333
+      AI_LLM_API_KEY: ${AI_LLM_API_KEY:-}
+      AI_LLM_BASE_URL: ${AI_LLM_BASE_URL:-https://api.openai.com/v1}
+      AI_LLM_MODEL: ${AI_LLM_MODEL:-}
+      AI_MIN_SCORE: ${AI_MIN_SCORE:-0.45}
+    volumes: ["model-cache:/var/cache/serviceflow"]
+    depends_on:
+      qdrant: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18082/health',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  api:
+    profiles: [stack]
+    build:
+      context: .
+      dockerfile: infra/backend.Dockerfile
+    environment:
+      SERVICEFLOW_BIND: 0.0.0.0
+      SERVICEFLOW_JDBC_URL: jdbc:mysql://mysql:3306/serviceflow?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      SERVICEFLOW_DB_PASSWORD: ${SERVICEFLOW_DB_PASSWORD:?run scripts/init-local.sh}
+      SERVICEFLOW_REDIS_HOST: redis
+      SERVICEFLOW_REDIS_PORT: 6379
+      SERVICEFLOW_DEMO_ENABLED: true
+      SERVICEFLOW_DEMO_PASSWORD: ${SERVICEFLOW_DEMO_PASSWORD:?run scripts/init-local.sh}
+      SERVICEFLOW_AI_ENABLED: true
+      SERVICEFLOW_AI_URL: http://ai-service:18082
+      SERVICEFLOW_AI_SERVICE_TOKEN: ${SERVICEFLOW_AI_SERVICE_TOKEN:?run scripts/init-local.sh}
+    depends_on:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      ai-service: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:18081/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  web:
+    profiles: [stack]
+    build:
+      context: .
+      dockerfile: infra/frontend.Dockerfile
+    ports: ["127.0.0.1:${SERVICEFLOW_WEB_PORT:-18080}:80"]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/healthz >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
+  model-cache:
   qdrant-data:
   mysql-data:
   redis-data:

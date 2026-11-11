@@ -1,0 +1,8 @@
+ai-service running healthy
+api running healthy
+mysql running healthy
+mysql-test running healthy
+qdrant running
+redis running healthy
+redis-test running healthy
+web running healthy

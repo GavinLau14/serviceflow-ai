@@ -2,7 +2,7 @@
 
 面向 Java 后端 + AI 应用工程实习的独立作品：客户提出售后问题，主管分派，客服处理并提交解决方案，客户确认后关闭。以可验证的数据权限、状态机与并发一致性作为业务基础。
 
-**当前交付：M1 工单核心 + M2 AI 服务 + M3 协作运营。** 已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。M4 计划见 [任务清单](docs/TASKS.md)。无生产部署、无远程推送。
+**当前交付：M1–M3 业务与 AI 服务，以及 M4 全栈本地交付。** 已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。M4 计划见 [任务清单](docs/TASKS.md)。无生产部署、无远程推送。
 
 ## 架构
 
@@ -23,13 +23,23 @@ Java 是唯一业务写入方。Python 不持有业务数据库凭据；所有�
 
 ## 环境与隔离
 
-- JDK 21、Maven 3.9+、Node 22.12+（本机验证为 Node 24）、Docker Compose v2，Python 3.9+ 仅用于本地演示数据脚本。
+- JDK 21、Maven 3.9+、Node 22.12+（本机验证为 Node 24）、Docker Compose v2，Python 3.9+ 仅用于本地演示/验证脚本。
 - Python AI 服务使用 3.12，M2 需安装下述锁定依赖。
 - Compose 项目名 `serviceflow`；MySQL 数据库 `serviceflow` / 测试 `serviceflow_test`。
 - 业务 MySQL `127.0.0.1:13318`、Redis `16389`；测试 MySQL `13319`、Redis `16390`；API `18081`、前端 `15173`。
 - 服务仅监听本机，卷与容器独立于其他项目。不使用已有 ProcureGuard 数据库或服务。
 
-## 启动
+## 一键容器启动（推荐演示）
+
+```bash
+./scripts/stack-up.sh
+# 浏览器 http://127.0.0.1:18080
+python3 scripts/smoke-stack.py --with-ai
+```
+
+只需Docker Compose；从源码构建Java、前端和Python镜像，不依赖宿主开发环境。初次下载依赖和真实模型需要联网。[部署与故障恢复手册](docs/DEPLOYMENT.md) · [演示路线](docs/DEMO.md) · [架构](docs/ARCHITECTURE.md) · [M4验证](docs/M4_RESULTS.md)。
+
+## 本机开发启动
 
 在本仓库根目录执行：
 
@@ -152,7 +162,7 @@ docs/         上游评估、设计、接口、ADR、里程碑验证、任务清
 - 尚无自助注册、密码重置/修改、附件、实时聊天、退款执行、多租户、客户组织结构；团队由产品分类固定映射，仅为 M1 范围。
 - 本地 bearer 存 sessionStorage；生产需独立评估 XSS/CSP、HTTPS、SSO、密钥管理及备份。Redis 当前只绑定本机，未配置生产认证/集群，不能直接暴露公网。
 - 登录按源地址每分钟限流；代理地址信任、共享出口与多实例运维仍需设计。没有压测、渗透测试或完整依赖安全审计结论。
-- Compose 当前容器化 MySQL/Redis/Qdrant；Java/前端本机运行，包含 Python/Qdrant 的完整应用容器交付在 M4。
+- Compose stack profile 已覆盖 Java/前端/Python/MySQL/Redis/Qdrant；配置用于本地演示，不代表生产部署。
 - Flyway 11.7.2 实际迁移通过，但对 MySQL 8.4 输出“版本未正式测试”警告；正式部署前应升级核验兼容版本。JDK 测试输出包含 Mockito 动态 agent 警告，未影响结果。
 
 停止本地 API/前端可在对应终端 Ctrl+C；`docker compose --profile test stop` 只停止本项目容器并保留业务卷。不要使用 `down -v`，除非确实要销毁本项目演示数据。

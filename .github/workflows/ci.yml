@@ -1,4 +1,4 @@
-name: M1 and M2 verification
+name: ServiceFlow verification
 on: [push, pull_request]
 permissions:
   contents: read
@@ -77,3 +77,35 @@ jobs:
           cache-dependency-path: ai-service/requirements.lock
       - run: pip install -r ai-service/requirements.lock
       - run: cd ai-service && python -m pytest -m 'not real' -q
+
+  container-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start isolated demo stack
+        run: ./scripts/stack-up.sh
+      - name: Authenticated full business smoke (no LLM, no model download)
+        run: python3 scripts/smoke-stack.py --output stack-smoke.json
+      - name: AI outage keeps human workflow available
+        run: |
+          docker compose stop ai-service
+          python3 scripts/smoke-stack.py --expect-ai-error --output stack-outage-smoke.json
+          docker compose --profile stack up -d --wait --wait-timeout 120
+      - name: Restart preserves business data
+        run: |
+          docker compose --profile stack restart api web
+          docker compose --profile stack up -d --wait --wait-timeout 120
+          python3 scripts/smoke-stack.py --verify-previous stack-smoke.json --output stack-restart-smoke.json
+      - name: Collect logs
+        if: always()
+        run: docker compose --profile stack logs --no-color > stack.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-evidence
+          path: |
+            stack-smoke.json
+            stack-restart-smoke.json
+            stack-outage-smoke.json
+            stack.log
