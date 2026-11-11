@@ -18,3 +18,7 @@ M1 的应用源码、SQL、测试及 UI 均为独立实现，未复制上述四�
 新增 FastAPI、LangGraph、Qdrant client、FastEmbed 等通过 Python lock 安装，无第三方源码 vendoring。依赖清单见 ai-service/requirements.lock，后续二进制分发仍需完整许可证与 SBOM 审核。
 
 真实 Embedding 模型为 [sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2)，模型卡声明 Apache-2.0 / 384维。FastEmbed 下载的 ONNX 转换模型保留在被忽略的本地缓存，未作为自有资产提交或打包。若后续分发权重，须携带对应来源、版本、许可证及 NOTICE，并核验转换版本的声明。
+
+## Frontend redesign references
+
+Chatwoot (MIT outside enterprise, separate enterprise license), FreeScout (AGPL-3.0), Papercups (MIT) were read as interface/workflow references. No source, CSS, logos, screenshots or other assets from these projects are incorporated. See docs/FRONTEND_REFERENCE_REVIEW.md for direct links and design decisions.

@@ -29,28 +29,43 @@ async function login() {
 <template>
   <div class="login-layout">
     <section class="login-story">
-      <a class="wordmark" href="/" aria-label="ServiceFlow 首页"
-        ><span class="brand-mark">S</span>ServiceFlow <small>AI</small></a
+      <a class="login-brand" href="/" aria-label="ServiceFlow 首页"
+        ><span class="flow-logo"><span></span><span></span></span
+        ><strong>ServiceFlow</strong><span>服务台</span></a
       >
-      <div>
-        <p class="intro-label">售后服务，从问题到解决</p>
-        <h1>连接每次服务，<br />推进每一个解决。</h1>
-        <p>
-          让客户、客服与服务团队在同一条处理链路中协作。保留问题的上下文，也让每次交接有据可查。
-        </p>
-        <ol class="login-flow">
-          <li>客户提交问题</li>
-          <li>团队协作处理</li>
-          <li>客户确认解决</li>
+      <div class="login-overview">
+        <h1>售后服务工作台</h1>
+        <p>接住客户的问题，让每一次处理有迹可循。</p>
+        <ol class="login-process">
+          <li>
+            <span class="process-node"></span>
+            <div>
+              <strong>受理问题</strong>
+              <p>保留客户原话与问题上下文</p>
+            </div>
+          </li>
+          <li>
+            <span class="process-node"></span>
+            <div>
+              <strong>协同处理</strong>
+              <p>分派、回复与交接，在同一处接续</p>
+            </div>
+          </li>
+          <li>
+            <span class="process-node"></span>
+            <div>
+              <strong>确认解决</strong>
+              <p>由客户确认结果，再沉淀服务经验</p>
+            </div>
+          </li>
         </ol>
       </div>
-      <span class="story-footer">ServiceFlow AI · 智能售后工单协同平台</span>
+      <footer>ServiceFlow AI <span>客户服务协作平台</span></footer>
     </section>
     <section class="login-form">
       <div>
-        <p class="intro-label">欢迎回来</p>
-        <h2>登录工作台</h2>
-        <p class="muted">使用你的服务账号继续。</p>
+        <h2>登录服务台</h2>
+        <p class="muted">输入你的账号，继续处理售后事务。</p>
         <el-alert
           v-if="error"
           :title="error"
@@ -94,7 +109,7 @@ async function login() {
           </p>
         </details>
       </div>
-      <p class="login-note">ServiceFlow · 安全协作与智能检索</p>
+      <p class="login-note">本地演示环境</p>
     </section>
   </div>
 </template>

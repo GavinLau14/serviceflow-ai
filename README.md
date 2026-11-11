@@ -80,6 +80,14 @@ python3 scripts/seed-demo.py
 
 脚本经 Java REST API 创建 5 张不同状态的售后工单，匹配标题已存在时跳过；仅用于演示，不作为正式导入接口。
 
+## 服务收件箱前端改版
+
+前端现为工具栏、工作队列、持久工单列表和案件上下文布局，沟通/回复先于系统轨迹。登录页、手机返回/退出、通知入口和工单属性同步调整。GitHub参考与许可证边界见docs/FRONTEND_REFERENCE_REVIEW.md；没有复制上游源码或资产。
+
+![服务收件箱](docs/images/frontend-inbox-desktop.png)
+
+使用容器后端开发前端时，可在本地.env设置SERVICEFLOW_PROXY_TARGET=http://127.0.0.1:18080；未设置时仍使用18081本机Java。原有里程碑记录保留，当前前端验证见docs/FRONTEND_REDESIGN_RESULTS.md。
+
 ## M3 协作运营与新版工作台
 
 已加入全宽队列表格、独立滚动详情、通知中心和知识库。客户可在 AI 结果中显式选择服务分类并确认转人工；系统按同组最小有效负载自动分派。主管可查看 SLA/审计并审核关闭工单形成的知识草稿。定时任务默认每30秒检查时限及投递站内通知。

@@ -169,7 +169,8 @@ async function transition(target: string) {
     <template v-else-if="detail"
       ><header class="detail-header">
         <div class="detail-topline">
-          <span class="reference">{{ detail.ticket.reference }}</span
+          <span class="reference" :title="detail.ticket.reference"
+            >工单 #{{ detail.ticket.id }}</span
           ><el-tag :class="'state-' + detail.ticket.status" effect="plain">{{
             statusNames[detail.ticket.status]
           }}</el-tag>
@@ -181,11 +182,193 @@ async function transition(target: string) {
           ><span>{{ priorityNames[detail.ticket.priority] }}优先级</span>
         </div>
       </header>
-      <div class="detail-body">
-        <section class="issue-section">
-          <h3>问题描述</h3>
-          <p class="preserve-text">{{ detail.ticket.description }}</p>
-          <dl class="facts">
+      <div class="case-grid">
+        <div class="detail-body">
+          <section class="issue-section">
+            <div class="message-author">
+              <span class="person-avatar">{{
+                detail.ticket.customerName[0]
+              }}</span>
+              <div>
+                <strong>{{ detail.ticket.customerName.split(" · ")[0] }}</strong
+                ><small>客户提交的问题</small>
+              </div>
+              <time>{{ time(detail.ticket.createdAt) }}</time>
+            </div>
+            <p class="preserve-text">{{ detail.ticket.description }}</p>
+          </section>
+          <section v-if="detail.ticket.status !== 'CLOSED'" class="next-action">
+            <div class="section-title">
+              <h3>下一步处理</h3>
+              <el-button
+                v-if="can('ASSIGN')"
+                size="small"
+                :disabled="busy"
+                @click="openAssign"
+                >分派客服</el-button
+              >
+            </div>
+            <p v-if="detail.ticket.status === 'OPEN'" class="muted">
+              {{
+                can("ASSIGN")
+                  ? "请将问题分派给本团队的客服。"
+                  : "服务团队将查看问题并安排客服跟进。"
+              }}
+            </p>
+            <p v-else-if="detail.ticket.status === 'ASSIGNED'" class="muted">
+              {{
+                can("START")
+                  ? "该问题已由你负责，准备好后开始处理。"
+                  : "已分派客服，等待开始处理。"
+              }}
+            </p>
+            <p v-else-if="detail.ticket.status === 'IN_PROGRESS'" class="muted">
+              客服正在跟进；你可以在下方补充问题信息。
+            </p>
+            <p v-else class="muted">解决方案已提交，等待客户确认处理结果。</p>
+            <el-button
+              v-if="can('START')"
+              type="primary"
+              :loading="busy"
+              @click="transition('IN_PROGRESS')"
+              >开始处理</el-button
+            >
+            <template v-if="can('RESOLVE')"
+              ><el-form-item label="处理说明" for="solution"
+                ><el-input
+                  id="solution"
+                  v-model="solution"
+                  type="textarea"
+                  :rows="3"
+                  maxlength="2000"
+                  placeholder="记录排查过程、实际处理措施与验证结果" /></el-form-item
+              ><el-button
+                type="primary"
+                :loading="busy"
+                @click="transition('WAITING_CUSTOMER')"
+                >提交解决方案</el-button
+              ></template
+            >
+            <div v-if="can('CONFIRM')" class="button-row">
+              <el-button
+                type="primary"
+                :loading="busy"
+                @click="transition('CLOSED')"
+                >确认解决并关闭</el-button
+              ><el-button :disabled="busy" @click="transition('IN_PROGRESS')"
+                >仍未解决</el-button
+              >
+            </div>
+            <div v-if="assignOpen" class="assign-form">
+              <el-form-item label="负责客服" for="assign-agent"
+                ><el-select
+                  id="assign-agent"
+                  v-model="assignee"
+                  placeholder="选择本团队客服"
+                  ><el-option
+                    v-for="agent in agents"
+                    :key="agent.id"
+                    :label="agent.displayName"
+                    :value="agent.id" /></el-select
+              ></el-form-item>
+              <p v-if="!agents.length">当前团队没有可分派客服。</p>
+              <el-checkbox v-model="consent"
+                >我确认将此工单分派给所选客服</el-checkbox
+              >
+              <div class="button-row">
+                <el-button
+                  type="primary"
+                  :loading="busy"
+                  :disabled="!assignee || !consent"
+                  @click="assign"
+                  >确认分派</el-button
+                ><el-button :disabled="busy" @click="assignOpen = false"
+                  >取消</el-button
+                >
+              </div>
+            </div>
+          </section>
+          <p v-else class="closed-message">此工单已完成，感谢你的确认。</p>
+
+          <section class="comments-section">
+            <h3>
+              沟通记录 <span class="subtle">{{ detail.comments.length }}</span>
+            </h3>
+            <p v-if="!detail.comments.length" class="muted">还没有补充消息。</p>
+            <article
+              v-for="comment in detail.comments"
+              :key="comment.id"
+              class="comment"
+            >
+              <div class="event-head">
+                <strong>{{ comment.authorName }}</strong
+                ><time>{{ time(comment.createdAt) }}</time
+                ><el-tag v-if="comment.internal" size="small" type="warning"
+                  >内部备注</el-tag
+                >
+              </div>
+              <p class="preserve-text">{{ comment.body }}</p>
+            </article>
+            <div v-if="can('COMMENT')" class="reply-form">
+              <label for="reply">{{
+                internal ? "内部备注 · 仅服务团队可见" : "补充消息"
+              }}</label
+              ><el-input
+                id="reply"
+                v-model="reply"
+                type="textarea"
+                :rows="3"
+                maxlength="5000"
+                placeholder="补充信息或回复处理进展"
+              />
+              <div class="reply-footer">
+                <el-checkbox v-if="can('INTERNAL_NOTE')" v-model="internal"
+                  >仅内部可见</el-checkbox
+                ><el-button
+                  type="primary"
+                  :disabled="!reply.trim()"
+                  :loading="busy"
+                  @click="comment"
+                  >发送回复</el-button
+                >
+              </div>
+            </div>
+          </section>
+          <section class="activity-section">
+            <h3>
+              处理轨迹 <span class="subtle">{{ detail.events.length }}</span>
+            </h3>
+            <ol class="timeline">
+              <li v-for="event in detail.events" :key="event.id">
+                <div class="event-head">
+                  <strong>{{ event.actorName }}</strong
+                  ><time>{{ time(event.createdAt) }}</time>
+                </div>
+                <p>{{ event.message }}</p>
+                <span class="event-state"
+                  >{{
+                    event.fromStatus
+                      ? statusNames[event.fromStatus] + " → "
+                      : ""
+                  }}{{ statusNames[event.toStatus] }}</span
+                >
+              </li>
+            </ol>
+          </section>
+        </div>
+        <aside class="case-properties">
+          <h3>工单信息</h3>
+          <dl>
+            <div>
+              <dt>当前状态</dt>
+              <dd>
+                <span
+                  class="ticket-state"
+                  :class="'state-' + detail.ticket.status"
+                  ><span></span>{{ statusNames[detail.ticket.status] }}</span
+                >
+              </dd>
+            </div>
             <div>
               <dt>产品分类</dt>
               <dd>
@@ -195,168 +378,44 @@ async function transition(target: string) {
               </dd>
             </div>
             <div>
+              <dt>优先级</dt>
+              <dd>{{ priorityNames[detail.ticket.priority] }}</dd>
+            </div>
+            <div>
               <dt>负责客服</dt>
-              <dd>{{ detail.ticket.assigneeName || "等待分派" }}</dd>
+              <dd>
+                {{ detail.ticket.assigneeName?.split(" · ")[0] || "等待分派" }}
+              </dd>
+            </div>
+            <div>
+              <dt>服务团队</dt>
+              <dd>
+                {{ detail.ticket.teamId === 1 ? "数码服务组" : "家电服务组" }}
+              </dd>
+            </div>
+            <div>
+              <dt>最近更新</dt>
+              <dd>{{ time(detail.ticket.updatedAt) }}</dd>
             </div>
           </dl>
-        </section>
-        <section v-if="detail.ticket.status !== 'CLOSED'" class="next-action">
-          <div class="section-title">
-            <h3>下一步处理</h3>
-            <el-button
-              v-if="can('ASSIGN')"
-              size="small"
-              :disabled="busy"
-              @click="openAssign"
-              >分派客服</el-button
-            >
+          <h3 class="customer-context-title">客户</h3>
+          <div class="context-person">
+            <span class="person-avatar">{{
+              detail.ticket.customerName[0]
+            }}</span
+            ><strong>{{ detail.ticket.customerName.split(" · ")[0] }}</strong>
           </div>
-          <p v-if="detail.ticket.status === 'OPEN'" class="muted">
-            {{
-              can("ASSIGN")
-                ? "请将问题分派给本团队的客服。"
-                : "服务团队将查看问题并安排客服跟进。"
-            }}
-          </p>
-          <p v-else-if="detail.ticket.status === 'ASSIGNED'" class="muted">
-            {{
-              can("START")
-                ? "该问题已由你负责，准备好后开始处理。"
-                : "已分派客服，等待开始处理。"
-            }}
-          </p>
-          <p v-else-if="detail.ticket.status === 'IN_PROGRESS'" class="muted">
-            客服正在跟进；你可以在下方补充问题信息。
-          </p>
-          <p v-else class="muted">解决方案已提交，等待客户确认处理结果。</p>
-          <el-button
-            v-if="can('START')"
-            type="primary"
-            :loading="busy"
-            @click="transition('IN_PROGRESS')"
-            >开始处理</el-button
-          >
-          <template v-if="can('RESOLVE')"
-            ><el-form-item label="处理说明" for="solution"
-              ><el-input
-                id="solution"
-                v-model="solution"
-                type="textarea"
-                :rows="3"
-                maxlength="2000"
-                placeholder="记录排查过程、实际处理措施与验证结果" /></el-form-item
-            ><el-button
-              type="primary"
-              :loading="busy"
-              @click="transition('WAITING_CUSTOMER')"
-              >提交解决方案</el-button
-            ></template
-          >
-          <div v-if="can('CONFIRM')" class="button-row">
-            <el-button
-              type="primary"
-              :loading="busy"
-              @click="transition('CLOSED')"
-              >确认解决并关闭</el-button
-            ><el-button :disabled="busy" @click="transition('IN_PROGRESS')"
-              >仍未解决</el-button
-            >
-          </div>
-          <div v-if="assignOpen" class="assign-form">
-            <el-form-item label="负责客服" for="assign-agent"
-              ><el-select
-                id="assign-agent"
-                v-model="assignee"
-                placeholder="选择本团队客服"
-                ><el-option
-                  v-for="agent in agents"
-                  :key="agent.id"
-                  :label="agent.displayName"
-                  :value="agent.id" /></el-select
-            ></el-form-item>
-            <p v-if="!agents.length">当前团队没有可分派客服。</p>
-            <el-checkbox v-model="consent"
-              >我确认将此工单分派给所选客服</el-checkbox
-            >
-            <div class="button-row">
-              <el-button
-                type="primary"
-                :loading="busy"
-                :disabled="!assignee || !consent"
-                @click="assign"
-                >确认分派</el-button
-              ><el-button :disabled="busy" @click="assignOpen = false"
-                >取消</el-button
-              >
-            </div>
-          </div>
-        </section>
-        <p v-else class="closed-message">此工单已完成，感谢你的确认。</p>
-        <section class="activity-section">
-          <h3>
-            处理轨迹 <span class="subtle">{{ detail.events.length }}</span>
-          </h3>
-          <ol class="timeline">
-            <li v-for="event in detail.events" :key="event.id">
-              <div class="event-head">
-                <strong>{{ event.actorName }}</strong
-                ><time>{{ time(event.createdAt) }}</time>
-              </div>
-              <p>{{ event.message }}</p>
-              <span class="event-state"
-                >{{
-                  event.fromStatus ? statusNames[event.fromStatus] + " → " : ""
-                }}{{ statusNames[event.toStatus] }}</span
-              >
-            </li>
-          </ol>
-        </section>
-        <TicketOperations v-if="user.role!=='CUSTOMER'" :id="id" :user="user" :status="detail.ticket.status" @updated="load"/>
-      <section class="comments-section">
-          <h3>
-            沟通记录 <span class="subtle">{{ detail.comments.length }}</span>
-          </h3>
-          <p v-if="!detail.comments.length" class="muted">还没有补充消息。</p>
-          <article
-            v-for="comment in detail.comments"
-            :key="comment.id"
-            class="comment"
-          >
-            <div class="event-head">
-              <strong>{{ comment.authorName }}</strong
-              ><time>{{ time(comment.createdAt) }}</time
-              ><el-tag v-if="comment.internal" size="small" type="warning"
-                >内部备注</el-tag
-              >
-            </div>
-            <p class="preserve-text">{{ comment.body }}</p>
-          </article>
-          <div v-if="can('COMMENT')" class="reply-form">
-            <label for="reply">{{
-              internal ? "内部备注 · 仅服务团队可见" : "补充消息"
-            }}</label
-            ><el-input
-              id="reply"
-              v-model="reply"
-              type="textarea"
-              :rows="3"
-              maxlength="5000"
-              placeholder="补充信息或回复处理进展"
+          <p class="context-note">仅向有权限的服务成员展示此工单及相关记录。</p>
+          <details v-if="user.role !== 'CUSTOMER'" class="case-tools">
+            <summary>服务时限与审计</summary>
+            <TicketOperations
+              :id="id"
+              :user="user"
+              :status="detail.ticket.status"
+              @updated="load"
             />
-            <div class="reply-footer">
-              <el-checkbox v-if="can('INTERNAL_NOTE')" v-model="internal"
-                >仅内部可见</el-checkbox
-              ><el-button
-                type="primary"
-                :disabled="!reply.trim()"
-                :loading="busy"
-                @click="comment"
-                >发送回复</el-button
-              >
-            </div>
-          </div>
-        </section>
-      </div></template
+          </details>
+        </aside></div></template
     ><el-button v-else-if="!loading" @click="load">重新加载详情</el-button>
   </section>
 </template>
