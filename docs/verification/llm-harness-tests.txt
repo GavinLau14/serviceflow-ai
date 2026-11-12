@@ -1,0 +1,18 @@
+test_business_writes_or_missing_run_history_fail (test_llm_acceptance.AcceptanceTests) ... ok
+test_errors_are_failures_not_quality_passes (test_llm_acceptance.AcceptanceTests) ... ok
+test_fake_reference_and_unsupported_answer_fail (test_llm_acceptance.AcceptanceTests) ... ok
+test_fixture_responses_pass_every_case (test_llm_acceptance.AcceptanceTests) ... ok
+test_handoff_cannot_hide_a_fabricated_policy_in_answer (test_llm_acceptance.AcceptanceTests) ... ok
+test_handoff_cannot_return_an_actionable_draft (test_llm_acceptance.AcceptanceTests) ... ok
+test_harness_uses_no_ticket_write_endpoint (test_llm_acceptance.AcceptanceTests) ... ok
+test_knowledge_baseline_matches_bundled_demo_corpus (test_llm_acceptance.AcceptanceTests) ... ok
+test_malformed_result_fails_without_crashing (test_llm_acceptance.AcceptanceTests) ... ok
+test_missing_history_fails_even_if_model_responses_pass (test_llm_acceptance.AcceptanceTests) ... ok
+test_no_key_means_not_run_and_stops_after_first_assist (test_llm_acceptance.AcceptanceTests) ... ok
+test_upstream_errors_do_not_leak_secrets (test_llm_acceptance.AcceptanceTests) ... ok
+test_wrong_category_and_modified_original_fail (test_llm_acceptance.AcceptanceTests) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.001s
+
+OK

@@ -111,6 +111,8 @@ Java 在新终端运行 `./scripts/run-api.sh`（如果原服务仍在运行，�
 
 `run-ai.sh` 读取同一 `.env`，将 SERVICEFLOW_AI_SERVICE_TOKEN 映射到内部 AI_SERVICE_TOKEN。远端生成可选配置：AI_LLM_API_KEY、AI_LLM_BASE_URL、AI_LLM_MODEL；不把 Key 写入源码或聊天。未配置时不会用规则或模拟向量冒充模型。
 
+真实模型配置后可执行六场景验收：`python3 scripts/llm_acceptance.py --run-live --output work/llm-acceptance.json`。它通过 Java API 验证引用、两类报修草稿、咨询不建单、政策追问和越权诱导，不执行工单提案。未就绪退出码为 2，不能记为通过。配置步骤、检查标准及局限见 [真实模型验收](docs/LLM_ACCEPTANCE.md)。
+
 本地默认阈值0.45只适用于当前三条演示资料，尚未通过业务评测校准。生成回答采用保守的引用原文约束。AI 只生成待确认草稿，执行时 Java 校验本人、确认、30分钟有效期并锁行，重复请求只产生一张工单。[M2 API](docs/M2_API.md) / [M2 实际验证](docs/M2_RESULTS.md)。
 
 ## 演示路径

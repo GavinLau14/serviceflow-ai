@@ -155,6 +155,22 @@ class AiIntegrationTest {
     var r = assist();
     assertThat(r.get("proposal").isNull()).isTrue();
     assertThat(r.get("handoff").asBoolean()).isTrue();
+    assertThat(r.get("mode").asText()).isEqualTo("rag");
+    assertThat(r.get("citations").size()).isEqualTo(1);
+  }
+
+  @Test
+  void supportedHandoffRetainsCitationsWithoutAuthorizingDraft() throws Exception {
+    output = output.replace("\"handoff\":false", "\"handoff\":true");
+    var r = assist();
+    assertThat(r.get("mode").asText()).isEqualTo("rag");
+    assertThat(r.get("handoff").asBoolean()).isTrue();
+    assertThat(r.get("citations").size()).isEqualTo(1);
+    assertThat(r.get("confidence").asDouble()).isZero();
+    assertThat(r.get("answer").asText()).contains("转人工");
+    assertThat(r.get("proposal").isNull()).isTrue();
+    postAs("alice", "/api/ai/runs/" + r.get("id").asText() + "/execute", Map.of("confirmed", true))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

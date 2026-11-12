@@ -1,0 +1,10 @@
+suite tests failures errors skipped
+com.serviceflow.AiExecutionConcurrencyTest 1 0 0 0
+com.serviceflow.AiIntegrationTest 16 0 0 0
+com.serviceflow.CollaborationConcurrencyTest 1 0 0 0
+com.serviceflow.CollaborationIntegrationTest 7 0 0 0
+com.serviceflow.ConcurrentUpdateTest 1 0 0 0
+com.serviceflow.LoginRateLimitTest 1 0 0 0
+com.serviceflow.OperationsIntegrationTest 7 0 0 0
+com.serviceflow.WorkflowIntegrationTest 33 0 0 0
+TOTAL 67 0 0 0

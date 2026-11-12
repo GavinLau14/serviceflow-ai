@@ -76,6 +76,8 @@ jobs:
           cache: pip
           cache-dependency-path: ai-service/requirements.lock
       - run: pip install -r ai-service/requirements.lock
+      - name: Offline acceptance harness contracts (no model calls)
+        run: python -m unittest discover -s scripts/tests -v
       - run: cd ai-service && python -m pytest -m 'not real' -q
 
   container-smoke:

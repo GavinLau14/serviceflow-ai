@@ -10,6 +10,9 @@ mvn -f backend/pom.xml verify
 npm --prefix frontend ci
 npm --prefix frontend run build
 
+# The live-model harness is tested offline; this never calls a provider.
+python3 -m unittest discover -s scripts/tests -v
+
 # M2 contracts use explicit fake providers, no model download or API key.
 if [[ -x ai-service/.venv/bin/python ]]; then
   (cd ai-service && .venv/bin/python -m pytest -m "not real" -q)

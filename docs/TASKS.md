@@ -16,6 +16,7 @@
 - [x] 意图/字段结构化输出；引用可回溯；证据不足转人工
 - [x] 工具提案、显式授权、受限服务身份、幂等执行、AI 调用日志
 - [ ] 有 Key 的真实 LLM/Tool Calling 验收（待本地配置）；真实 Embedding/Qdrant 正负检索已验证，无 Key 为 retrieval_only
+- [x] 六场景真实模型验收脚本、离线验收器回归、明确 NOT_RUN 退出码；见 LLM_ACCEPTANCE.md（不代表远端模型已通过）
 
 ## M3
 - [x] 会话与人工接管、规则自动分派、负载/并发边界

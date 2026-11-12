@@ -115,6 +115,11 @@ public class AiService {
               || proposal.priority() == TicketRequests.Priority.HIGH))
         throw new IllegalArgumentException("Invalid proposal");
     }
+    if (out.mode().equals("rag") && !evidence && !out.citations().isEmpty())
+      // A deliberate human handoff is a valid outcome. Preserve its sources but
+      // replace uncertain generated claims and discard every executable draft.
+      return new Output("rag", "UNKNOWN", "依据或置信度不足，请转人工处理；尚未创建工单。",
+          0, true, out.citations(), null);
     if (out.mode().equals("rag") && !evidence)
       return failure("error", "检索证据或模型可信度不足，已建议人工处理；未执行任何业务操作。");
     return new Output(

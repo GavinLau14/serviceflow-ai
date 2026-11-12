@@ -1,0 +1,10 @@
+{
+  "suiteVersion": 1,
+  "status": "NOT_RUN",
+  "cases": [],
+  "checks": [],
+  "reason": "model_or_retrieval_not_ready",
+  "observedMode": "retrieval_only",
+  "recordedAt": "2026-11-12T04:37:51.414950+00:00",
+  "scope": "six_demo_cases_not_accuracy_benchmark; no_ticket_execution"
+}
