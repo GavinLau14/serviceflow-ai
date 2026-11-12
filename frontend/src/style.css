@@ -146,6 +146,8 @@ summary:focus-visible {
   color: #fff;
 }
 .rail-avatar {
+  border: 0;
+  cursor: pointer;
   margin-top: auto;
   background: #637565;
   color: #fff;

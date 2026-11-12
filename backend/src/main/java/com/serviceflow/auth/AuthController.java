@@ -18,12 +18,15 @@ public class AuthController {
   private final PasswordEncoder passwords;
   private final String dummy;
   private final com.serviceflow.ai.AiGateway ai;
+  private final PasswordService passwordService;
 
   public AuthController(
       UserMapper users,
       SessionService sessions,
       PasswordEncoder passwords,
-      com.serviceflow.ai.AiGateway ai) {
+      com.serviceflow.ai.AiGateway ai,
+      PasswordService passwordService) {
+    this.passwordService=passwordService;
     this.ai = ai;
     this.users = users;
     this.sessions = sessions;
@@ -54,6 +57,18 @@ public class AuthController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void logout(@RequestHeader("Authorization") String auth) {
     sessions.revoke(auth.substring(7));
+  }
+
+  public record ChangePassword(@NotBlank @Size(max=128) String currentPassword,
+      @NotBlank @Size(max=128) String newPassword,boolean confirmed) {}
+
+  @PostMapping("/auth/password")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void changePassword(@AuthenticationPrincipal User u,@Valid @RequestBody ChangePassword req,
+      HttpServletRequest http) {
+    if(!req.confirmed())throw ApiException.bad("请确认修改密码并退出全部已登录设备");
+    sessions.throttle(u.username,http.getRemoteAddr());
+    passwordService.change(u,req.currentPassword(),req.newPassword());
   }
 
   @GetMapping("/capabilities")

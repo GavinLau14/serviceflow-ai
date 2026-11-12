@@ -2,6 +2,8 @@
 
 公开代码仓库：[GavinLau14/serviceflow-ai](https://github.com/GavinLau14/serviceflow-ai)。用于简历展示、源码审查与本地复现，GitHub 托管代码不等于已上线公网服务。
 
+2026-11-12首次公开上传：main=`d80dd4022b08f0d1a113b888b26d7d16fa930022`，远端SHA与本地一致，五个Release均已创建。首次 [远程CI](https://github.com/GavinLau14/serviceflow-ai/actions/runs/43181146777) 的verify、ai-contracts、container-smoke三项全部成功，保存记录见 verification/github-v0.4.1-ci.json。历史快照上传触发的重复CI已取消，不代表其失败或通过；这里只引用main实际成功运行。
+
 ## main、功能分支和版本
 
 main 保留当前可演示的集成版本；新功能从最新 main 创建 `codex/<module>-<feature>`，完成模块测试、业务闭环和结果报告后再集成。不能通过改写历史报告把未完成的验收写成已通过。

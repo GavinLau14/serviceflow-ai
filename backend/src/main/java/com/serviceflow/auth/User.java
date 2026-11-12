@@ -7,6 +7,7 @@ public class User {
   public String username;
   public String displayName;
   @JsonIgnore public String passwordHash;
+  @JsonIgnore public long credentialVersion;
   public String role;
   public Long teamId;
   @JsonIgnore public boolean active;

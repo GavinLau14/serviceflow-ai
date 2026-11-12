@@ -10,7 +10,7 @@
 python3 scripts/smoke-stack.py --with-ai
 ```
 
-需要Docker Compose v2与联网下载基础镜像、Maven/npm/Python依赖及Embedding模型。源码镜像构建不依赖本机Java/Node/Python虚拟环境。`--with-ai`只适用于未配置远端LLM的真实检索验收；配置远端模型后应另做生成及工具调用验收。第一次索引会下载约240MB模型，可在管理员页面执行。普通smoke（不带该参数）不下载模型，验证无知识时安全转人工、建单与关闭审核闭环。
+需要Docker Compose v2、Bash和Python 3.9+（初始化/验证脚本使用），并联网下载基础镜像、Maven/npm/Python依赖及Embedding模型。源码镜像构建不依赖本机Java/Node或Python 3.12虚拟环境。`--with-ai`只适用于未配置远端LLM的真实检索验收；配置远端模型后应另做生成及工具调用验收。第一次索引会下载约240MB模型，可在管理员页面执行。普通smoke（不带该参数）不下载模型，验证无知识时安全转人工、建单与关闭审核闭环。
 
 .env由初始化脚本生成并保留既有值，Docker上下文排除.env、密钥、模型缓存、node_modules、target与虚拟环境。改变已有数据库密码环境变量不会自动修改数据库账号；不要通过删除数据卷解决凭据不一致。已有演示账号密码同理。
 

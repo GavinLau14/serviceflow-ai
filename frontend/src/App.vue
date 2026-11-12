@@ -44,6 +44,8 @@ import CreateTicket from "./components/CreateTicket.vue";
 import TicketDetail from "./components/TicketDetail.vue";
 import AiAssist from "./components/AiAssist.vue";
 import OperationsView from "./components/OperationsView.vue";
+import AccountSecurity from "./components/AccountSecurity.vue";
+const accountOpen = ref(false);
 const user = ref<User | null>(null),
   initializing = ref(true),
   items = ref<Ticket[]>([]),
@@ -172,11 +174,16 @@ function resetSession() {
   busy.value = false;
   assistOpen.value = false;
   createOpen.value = false;
+  accountOpen.value = false;
   capabilities.value = null;
   capabilityError.value = "";
   indexResult.value = "";
   indexError.value = "";
   indexing.value = false;
+}
+function passwordChanged() {
+  resetSession();
+  ElMessage.success("密码已修改，请使用新密码重新登录");
 }
 async function loggedIn(u: User) {
   session++;
@@ -260,9 +267,9 @@ onUnmounted(() =>
       </div>
       <button class="rail-logout" aria-label="退出登录" @click="logout">
         <el-icon><SwitchButton /></el-icon></button
-      ><span class="rail-avatar" :title="user.displayName">{{
+      ><button class="rail-avatar" :title="'账号安全 · ' + user.displayName" aria-label="账号安全" @click="accountOpen = true">{{
         user.displayName[0]
-      }}</span>
+      }}</button>
     </aside>
     <aside class="queue-navigation">
       <header class="workspace-identity">
@@ -545,6 +552,7 @@ onUnmounted(() =>
         </section>
       </main>
     </div>
+    <AccountSecurity v-model="accountOpen" :user="user" @changed="passwordChanged" />
     <CreateTicket v-model="createOpen" @created="created" /><AiAssist
       v-if="user.role === 'CUSTOMER'"
       v-model="assistOpen"
