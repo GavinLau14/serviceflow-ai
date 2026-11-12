@@ -9,7 +9,7 @@
 - `POST /api/operations/scan {confirmed:true}`：主管扫描本团队，管理员全局；定时任务按有界批次扫描。SLA 超时一次性升级优先级，保留审计/通知outbox。等待客户期间不触发解决时限升级；重新处理后按原绝对期限判断，未实现暂停时长累计补偿。
 - `GET /api/notifications`：本人最近100条。`POST /api/notifications/{id}/read {}`：仅本人且幂等。
 - `POST /api/tickets/{id}/knowledge {title,content,confirmed:true}`：客户确认关闭后的工单，由有范围权限的客服/主管/管理员手动整理脱敏草稿。相同工单当前DRAFT复用，审核后可再建新草稿。
-- `GET /api/knowledge`：工作人员按工单权限查看最近100条。`POST /api/knowledge/{id}/review {approved:true|false,confirmed:true}`：主管本组或管理员，审核为PUBLISHED/REJECTED；重复同结果幂等，反向重复审核409。审核通过不自动写入AI向量库。
+- `GET /api/knowledge`：兼容旧脚本的工作人员最近100条数组；新工作台用分页inbox。`POST /api/knowledge/{id}/review {approved:true|false,confirmed:true,note?:string}`：主管本组或管理员，退回时note必填，通过可选；重复同结论和规范化意见幂等，改变结论或意见409。审核通过不自动写入AI向量库。
 
 自动分派：先锁团队、再建单，按同组活跃客服未关闭工单数量选最少负载，负载相同时按ID；配置容量不足保留OPEN。手工主管分派不受自动分派容量限制。系统分派的事件actor关联触发创建的用户，action为AUTO_ASSIGNED。
 

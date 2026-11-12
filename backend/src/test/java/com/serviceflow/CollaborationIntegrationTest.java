@@ -114,7 +114,7 @@ class CollaborationIntegrationTest {
     read("alice", "/api/knowledge").andExpect(status().isForbidden());
     read("otherlead", "/api/knowledge").andExpect(status().isOk()).andExpect(jsonPath("length()").value(0));
     read("agent", "/api/knowledge").andExpect(status().isOk()).andExpect(jsonPath("[0].ticketId").value(ticket));
-    send("supervisor", "/api/knowledge/" + id + "/review", Map.of("approved", false, "confirmed", true)).andExpect(status().isOk()).andExpect(jsonPath("status").value("REJECTED"));
+    send("supervisor", "/api/knowledge/" + id + "/review", Map.of("approved", false, "confirmed", true,"note","请补充实际复测结果")).andExpect(status().isOk()).andExpect(jsonPath("status").value("REJECTED"));
     long revised = node(send("agent", "/api/tickets/" + ticket + "/knowledge", draft()).andExpect(status().isCreated())).get("id").asLong();
     assertThat(revised).isNotEqualTo(id);
     assertThat(db.queryForObject("SELECT COUNT(*) FROM knowledge_events WHERE knowledge_id=?", Integer.class, id)).isEqualTo(2);
