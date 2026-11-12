@@ -2,6 +2,8 @@
 
 沿用 M1 bearer 认证和工单数据范围。
 
+通知分页、未读计数及显式全部已读的增补接口见 [API 文档](API.md#通知收件箱m3-增补)。旧通知数组端点仅保留兼容用途，新工作台改用分页收件箱。
+
 - `POST /api/ai/runs/{id}/handoff {confirmed:true,category:"DEVICE"|"APPLIANCE"}`：客户本人明确转人工，保留新咨询原文；与 AI execute 共用行锁和 ticketId，重复/并发不重复建单。旧记录缺少可验证原文时409，要求重新咨询。人工服务沿用工单公开消息，已分派客服开始处理即接管；不宣称已实现即时聊天。
 - `GET /api/tickets/{id}/sla`、`GET /api/tickets/{id}/audit`：客服、主管、管理员按工单范围读取；客户不可读取内部审计。
 - `POST /api/operations/scan {confirmed:true}`：主管扫描本团队，管理员全局；定时任务按有界批次扫描。SLA 超时一次性升级优先级，保留审计/通知outbox。等待客户期间不触发解决时限升级；重新处理后按原绝对期限判断，未实现暂停时长累计补偿。

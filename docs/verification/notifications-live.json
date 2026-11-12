@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "baseUrl": "http://127.0.0.1:18080",
+  "paginationVerified": true,
+  "aliceTotal": 95,
+  "aliceUnread": 94,
+  "mobileNoOverflow": true,
+  "pageErrors": 0,
+  "bobMarkedRead": 6,
+  "readAllIdempotent": true,
+  "otherAccountUnaffected": true
+}

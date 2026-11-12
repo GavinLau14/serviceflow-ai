@@ -14,15 +14,79 @@ async function mount(page: Page, component: string, props: object, fixtures: Rec
 }
 
 test("notifications mark read only on request and render escaped content", async ({ page }) => {
-  await mount(page, "OperationsView", { user: agent, view: "notifications" }, { "/notifications": [{ id: 7, ticketId: 21, title: "工单已分派", body: "<img src=x onerror=alert(1)>", read: false, createdAt: "2026-11-10T08:00:00" }] });
+  const notice = { id: 7, ticketId: 21, title: "工单已分派", body: "<img src=x onerror=alert(1)>", read: false, createdAt: "2026-11-10T08:00:00" };
+  const inbox = { items: [notice], total: 1, unreadTotal: 1, page: 1, size: 20 };
+  await mount(page, "OperationsView", { user: agent, view: "notifications" }, { "/notifications/inbox": inbox });
   let reads = 0;
-  await page.route("**/api/notifications/7/read", async route => { reads++; expect(route.request().postDataJSON()).toEqual({}); await route.fulfill({ status: 204 }); });
+  await page.route("**/api/notifications/7/read", async route => { reads++; notice.read = true; inbox.unreadTotal = 0; expect(route.request().postDataJSON()).toEqual({}); await route.fulfill({ status: 204 }); });
   await expect(page.getByText("工单已分派", { exact: true })).toBeVisible();
   await expect(page.locator("img")).toHaveCount(0);
   expect(reads).toBe(0);
-  await page.getByRole("button", { name: "标为已读" }).click();
+  await page.getByRole("button", { name: "标为已读", exact: true }).click();
   await expect(page.getByText("已读", { exact: true })).toBeVisible();
   expect(reads).toBe(1);
+});
+
+test("notification pagination and unread filter use server counts and recover from an empty last page", async ({ page }) => {
+  const notice = { id: 7, ticketId: 21, title: "末页通知", body: "处理进展", read: false, createdAt: "2026-11-10T08:00:00" };
+  await mount(page, "OperationsView", { user: agent, view: "notifications" }, {
+    "/notifications/inbox": { items: [notice], total: 21, unreadTotal: 21, page: 1, size: 20 },
+  });
+  await expect(page.getByText("21 条未读", { exact: true })).toBeVisible();
+  const queries: string[] = [];
+  let read = false;
+  await page.route("**/api/notifications/inbox?**", async route => {
+    const query = new URL(route.request().url()).searchParams;
+    queries.push(query.toString());
+    const current = Number(query.get("page"));
+    await route.fulfill({ json: { items: current === 2 && read ? [] : [{ ...notice, title: current === 2 ? "末页通知" : "第一页通知" }], total: read ? 20 : 21, unreadTotal: read ? 20 : 21, page: current, size: 20 } });
+  });
+  await page.getByRole("button", { name: "只看未读", exact: true }).click();
+  await page.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "末页通知", exact: true })).toBeVisible();
+  await page.route("**/api/notifications/7/read", async route => { read = true; await route.fulfill({ status: 204 }); });
+  await page.getByRole("button", { name: "标为已读", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "第一页通知", exact: true })).toBeVisible();
+  expect(queries.some(q => q.includes("unreadOnly=true") && q.includes("page=2"))).toBeTruthy();
+  await expect(page.getByText("20 条未读", { exact: true })).toBeVisible();
+});
+
+test("read-all needs confirmation and failed updates leave messages unread", async ({ page }) => {
+  const notice = { id: 7, ticketId: 21, title: "工单更新", body: "处理进展", read: false, createdAt: "2026-11-10T08:00:00" };
+  const inbox = { items: [notice], total: 1, unreadTotal: 1, page: 1, size: 20 };
+  await mount(page, "OperationsView", { user: agent, view: "notifications" }, { "/notifications/inbox": inbox });
+  let writes = 0, fail = true;
+  await page.route("**/api/notifications/read-all", async route => {
+    writes++;
+    expect(route.request().postDataJSON()).toEqual({ confirmed: true });
+    if (fail) await route.fulfill({ status: 503, json: { message: "暂时无法标记，请重试" } });
+    else { notice.read = true; inbox.unreadTotal = 0; await route.fulfill({ json: { updated: 1 } }); }
+  });
+  await page.getByRole("button", { name: "全部标为已读", exact: true }).click();
+  await page.getByRole("button", { name: "取消", exact: true }).click();
+  expect(writes).toBe(0);
+  await page.getByRole("button", { name: "全部标为已读", exact: true }).click();
+  await page.getByRole("button", { name: "确认标记", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("暂时无法标记");
+  await expect(page.getByText("1 条未读", { exact: true })).toBeVisible();
+  fail = false;
+  await page.getByRole("button", { name: "全部标为已读", exact: true }).click();
+  await page.getByRole("button", { name: "确认标记", exact: true }).click();
+  await expect(page.getByText("0 条未读", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "全部标为已读", exact: true })).toBeDisabled();
+  expect(writes).toBe(2);
+});
+
+test("a failed unread filter never presents the previous all-messages list as filtered results", async ({ page }) => {
+  await mount(page, "OperationsView", { user: agent, view: "notifications" }, {
+    "/notifications/inbox": { items: [{ id: 7, ticketId: 21, title: "历史已读消息", body: "处理进展", read: true, createdAt: "2026-11-10T08:00:00" }], total: 1, unreadTotal: 0, page: 1, size: 20 },
+  });
+  await expect(page.getByRole("heading", { name: "历史已读消息", exact: true })).toBeVisible();
+  await page.route("**/api/notifications/inbox?**", route => route.fulfill({ status: 503, json: { message: "筛选暂不可用" } }));
+  await page.getByRole("button", { name: "只看未读", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("筛选暂不可用");
+  await expect(page.getByRole("heading", { name: "历史已读消息", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "通知分页" })).toHaveCount(0);
 });
 
 test("knowledge review requires explicit confirmation and scopes actions by role", async ({ page }) => {
@@ -61,13 +125,13 @@ test("closed ticket knowledge uses manual confirmed content and renders SLA and 
 });
 
 test("notification errors recover through refresh and empty state stays truthful", async ({ page }) => {
-  await mount(page, "OperationsView", { user: agent, view: "notifications" }, { "/notifications": [] });
+  await mount(page, "OperationsView", { user: agent, view: "notifications" }, { "/notifications/inbox": { items: [], total: 0, unreadTotal: 0, page: 1, size: 20 } });
   await expect(page.getByRole("heading", { name: "暂无消息" })).toBeVisible();
-  await page.route("**/api/notifications", route => route.fulfill({ status: 503, json: { message: "通知服务暂不可用" } }));
+  await page.route("**/api/notifications/inbox?**", route => route.fulfill({ status: 503, json: { message: "通知服务暂不可用" } }));
   await page.getByRole("button", { name: "刷新", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("通知服务暂不可用");
   await expect(page.getByRole("heading", { name: "暂无消息" })).toHaveCount(0);
-  await page.route("**/api/notifications", route => route.fulfill({ json: [] }));
+  await page.route("**/api/notifications/inbox?**", route => route.fulfill({ json: { items: [], total: 0, unreadTotal: 0, page: 1, size: 20 } }));
   await page.getByRole("button", { name: "刷新", exact: true }).click();
   await expect(page.getByRole("heading", { name: "暂无消息" })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);

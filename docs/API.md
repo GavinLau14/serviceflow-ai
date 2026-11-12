@@ -34,3 +34,18 @@ curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
 ```
 
 M1 为手写接口文档，尚无自动生成的 OpenAPI/Swagger。禁止传真实密钥/支付信息到演示问题中。
+
+## 通知收件箱（M3 增补）
+
+所有角色均只能读取和标记本人通知，管理员也不例外。无需也不接受客户端指定 userId。
+
+| Method | Path | 参数与响应 |
+| --- | --- | --- |
+| GET | /notifications/inbox | `?page=1&size=20&unreadOnly=false` → `{items,total,unreadTotal,page,size}` |
+| POST | /notifications/read-all | `{confirmed:true}` → `{updated}`，仅更新本人未读通知，重复请求返回 0 |
+| POST | /notifications/{id}/read | `{}` → Notice，其他账号记录返回 404 |
+| GET | /notifications | 兼容旧演示脚本，返回最近 100 条数组；新界面使用 inbox 接口 |
+
+Notice：`{id,ticketId,title,body,read,createdAt}`。page≥1，size=1..100，超出范围或非法布尔值返回400；未登录返回401。items按id倒序，total为当前筛选结果总量，unreadTotal为本人全部通知的未读总数，二者均不受当前页容量限制。使用long计算offset，避免大页码整数溢出。列表和两种计数在一次只读事务中读取。
+
+全部已读是操作发生时对本人未读记录执行一次事务更新；之后新到达的消息仍未读。未读数量不是实时推送，进入页面、翻页、筛选、标记或刷新后重新向服务端读取。消息中的工单入口仍受工单数据权限检查，通知本身只包含固定动态说明，不包含客户问题或内部备注。

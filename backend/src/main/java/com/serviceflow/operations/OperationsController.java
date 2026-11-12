@@ -28,6 +28,19 @@ public class OperationsController {
   public List<OperationsService.Notice> notices(@AuthenticationPrincipal User u) {
     return operations.notifications(u);
   }
+  @GetMapping("/notifications/inbox")
+  public OperationsService.NoticePage inbox(@AuthenticationPrincipal User u,
+      @RequestParam(defaultValue="1") int page,@RequestParam(defaultValue="20") int size,
+      @RequestParam(defaultValue="false") boolean unreadOnly) {
+    return operations.notificationInbox(u,page,size,unreadOnly);
+  }
+  public record ReadAllRequest(boolean confirmed) {}
+  public record ReadAllResult(int updated) {}
+  @PostMapping("/notifications/read-all")
+  public ReadAllResult readAll(@AuthenticationPrincipal User u,@RequestBody ReadAllRequest req) {
+    if(!req.confirmed())throw ApiException.bad("请确认将本人全部通知标为已读");
+    return new ReadAllResult(operations.readAll(u));
+  }
   @PostMapping("/notifications/{id}/read")
   public OperationsService.Notice read(@AuthenticationPrincipal User u,@PathVariable long id) {
     return operations.read(u,id);

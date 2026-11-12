@@ -1,0 +1,27 @@
+
+> serviceflow-web@0.1.0 test:e2e
+> playwright test
+
+
+Running 16 tests using 1 worker
+
+(node:73522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/ai-contract.spec.ts:96:1 › fake contract: retrieval extracts stay escaped and cannot execute; request errors recover (1.7s)
+  ✓   2 e2e/ai-contract.spec.ts:147:1 › fake contract: persisted drafts require explicit confirmation and emit created ticket (1.2s)
+  ✓   3 e2e/ai-contract.spec.ts:190:1 › fake contract: disabled and error modes offer manual recovery (706ms)
+  ✓   4 e2e/ai-contract.spec.ts:222:1 › fake contract: expired history cannot execute a proposal (613ms)
+  ✓   5 e2e/ai-contract.spec.ts:239:1 › fake contract: admin alone sees index action and service status (339ms)
+  ✓   6 e2e/ai-contract.spec.ts:263:1 › fake contract: human handoff requires product category and explicit consent (1.2s)
+  ✓   7 e2e/inbox-redesign.spec.ts:3:1 › service inbox preserves context, keyboard selection and mobile navigation (294ms)
+  ✓   8 e2e/operations-contract.spec.ts:16:1 › notifications mark read only on request and render escaped content (341ms)
+  ✓   9 e2e/operations-contract.spec.ts:30:1 › notification pagination and unread filter use server counts and recover from an empty last page (358ms)
+  ✓  10 e2e/operations-contract.spec.ts:54:1 › read-all needs confirmation and failed updates leave messages unread (436ms)
+  ✓  11 e2e/operations-contract.spec.ts:80:1 › a failed unread filter never presents the previous all-messages list as filtered results (244ms)
+  ✓  12 e2e/operations-contract.spec.ts:92:1 › knowledge review requires explicit confirmation and scopes actions by role (293ms)
+  ✓  13 e2e/operations-contract.spec.ts:108:1 › closed ticket knowledge uses manual confirmed content and renders SLA and audit (277ms)
+  ✓  14 e2e/operations-contract.spec.ts:127:1 › notification errors recover through refresh and empty state stays truthful (298ms)
+  ✓  15 e2e/operations-contract.spec.ts:140:1 › customer ticket operations never request staff endpoints or expose their controls (601ms)
+  ✓  16 e2e/workflow.spec.ts:16:1 › 客户提交 → 主管分派 → 客服处理 → 客户确认关闭 (4.8s)
+
+  16 passed (14.2s)

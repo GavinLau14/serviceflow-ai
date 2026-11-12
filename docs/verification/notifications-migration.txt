@@ -1,0 +1,4 @@
+5	notification unread index	1
+notifications	1	idx_notice_owner_unread	1	user_id	A	7	NULL	NULL		BTREE			YES	NULL
+notifications	1	idx_notice_owner_unread	2	is_read	A	8	NULL	NULL		BTREE			YES	NULL
+notifications	1	idx_notice_owner_unread	3	id	A	389	NULL	NULL		BTREE			YES	NULL

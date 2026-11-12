@@ -28,6 +28,7 @@ public class OperationsService {
   public record AuditView(long id,long ticketId,Long actorId,String actorName,String action,
       String message,LocalDateTime createdAt) {}
   public record Notice(long id,long ticketId,String title,String body,boolean read,LocalDateTime createdAt) {}
+  public record NoticePage(List<Notice> items,long total,long unreadTotal,int page,int size) {}
   public record ScanResult(int scanned,int escalated,int delivered) {}
   private record Sla(LocalDateTime firstResponseDue, LocalDateTime resolutionDue,
       LocalDateTime firstRespondedAt, LocalDateTime escalatedAt) {}
@@ -128,6 +129,21 @@ public class OperationsService {
   @Transactional(readOnly=true)
   public List<Notice> notifications(User u) {
     return db.query("SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 100",NOTICE,u.id);
+  }
+
+  @Transactional(readOnly=true)
+  public NoticePage notificationInbox(User u,int page,int size,boolean unreadOnly) {
+    if(page<1 || size<1 || size>100)throw ApiException.bad("页码必须大于0，每页数量须为1至100");
+    long unread=db.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=FALSE",Long.class,u.id);
+    long total=unreadOnly?unread:db.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=?",Long.class,u.id);
+    String filter=unreadOnly?" AND is_read=FALSE":"";
+    List<Notice> items=db.query("SELECT * FROM notifications WHERE user_id=?"+filter+" ORDER BY id DESC LIMIT ? OFFSET ?",NOTICE,u.id,size,((long)page-1)*size);
+    return new NoticePage(items,total,unread,page,size);
+  }
+
+  @Transactional
+  public int readAll(User u) {
+    return db.update("UPDATE notifications SET is_read=TRUE WHERE user_id=? AND is_read=FALSE",u.id);
   }
 
   @Transactional
