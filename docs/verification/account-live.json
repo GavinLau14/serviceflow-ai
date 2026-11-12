@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "legacyRoles": [
+    "CUSTOMER",
+    "AGENT",
+    "SUPERVISOR",
+    "ADMIN"
+  ],
+  "invalidChangeRejected": true,
+  "mobileNoOverflow": true
+}

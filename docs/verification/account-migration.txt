@@ -1,0 +1,2 @@
+6	credential version	1
+0

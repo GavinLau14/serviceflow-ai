@@ -2,7 +2,7 @@
 
 面向 Java 后端 + AI 应用工程实习的独立作品：客户提出售后问题，主管分派，客服处理并提交解决方案，客户确认后关闭。以可验证的数据权限、状态机与并发一致性作为业务基础。
 
-**当前交付版本：v0.4.1。** M1–M4 的工单、协作运营、AI 服务及容器演示已经实现，后续补齐了客服工作台和分页通知。已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。当前仅用于本地演示，没有生产部署。
+**当前交付版本：v0.5.0。** M1–M4 的工单、协作运营、AI 服务及容器演示已经实现，后续补齐了客服工作台、分页通知和账号改密。已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。当前仅用于本地演示，没有生产部署。
 
 [![CI](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml)
 
@@ -12,7 +12,7 @@
 
 | 模块 | 已实现的业务能力 |
 | --- | --- |
-| 账号与权限 | 四类角色、客户本人/客服受派/主管本组/管理员全局范围、可撤销会话 |
+| 账号与权限 | 四类角色与数据范围、可撤销会话、本人改密、凭据版本使旧会话失效 |
 | 售后工单 | 建单、分派、处理、公开回复/内部备注、客户确认关闭、版本冲突检查 |
 | AI 售后助手 | 意图与字段合同、真实语义检索、来源引用、待确认工具草稿、幂等执行/人工接管 |
 | 运营协作 | 同组最小负载自动分派、SLA 扫描升级、事务审计与通知 outbox |
@@ -162,7 +162,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 同时提交两次真实 MySQL 更新并检查一次成功；`LoginRateLimitTest` 检查 Redis 限流。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 71 项、浏览器 16 项，详见 [通知收件箱验证](docs/NOTIFICATION_INBOX_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
+`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 同时提交两次真实 MySQL 更新并检查一次成功；`LoginRateLimitTest` 检查 Redis 限流及分钟边界；`PasswordChangeIntegrationTest` 验证改密、并发、事务回滚和旧会话失效。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 79 项、浏览器 19 项，详见 [账号模块验证](docs/ACCOUNT_SECURITY_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
 
 ## 演示截图
 
@@ -190,7 +190,7 @@ docs/         上游评估、设计、接口、ADR、里程碑验证、任务清
 ## 当前局限
 
 - M2 已验证真实本地 Embedding/Qdrant；没有配置远端 LLM Key，真实生成/工具调用的远端验收尚待完成。仅有三条演示知识，不能代表生产问答质量。已实现规则自动分派、SLA升级、站内通知outbox、内部审计查询和人工审核知识沉淀。审计不具备数据库管理员防篡改保证。
-- 尚无自助注册、密码重置/修改、附件、实时聊天、退款执行、多租户、客户组织结构；团队由产品分类固定映射，仅为 M1 范围。
+- 已支持本人修改密码（左下角头像进入账号安全），尚无自助注册、忘记密码找回/管理员重置、附件、实时聊天、退款执行、多租户、客户组织结构；团队由产品分类固定映射。
 - 本地 bearer 存 sessionStorage；生产需独立评估 XSS/CSP、HTTPS、SSO、密钥管理及备份。Redis 当前只绑定本机，未配置生产认证/集群，不能直接暴露公网。
 - 登录按源地址每分钟限流；代理地址信任、共享出口与多实例运维仍需设计。没有压测、渗透测试或完整依赖安全审计结论。
 - Compose stack profile 已覆盖 Java/前端/Python/MySQL/Redis/Qdrant；配置用于本地演示，不代表生产部署。

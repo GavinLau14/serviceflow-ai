@@ -1,0 +1,23 @@
+{
+  "restartPersistenceVerified": false,
+  "aiOutageFallbackVerified": false,
+  "baseUrl": "http://127.0.0.1:18080",
+  "status": "PASS",
+  "aiMode": "retrieval_only",
+  "realRetrievalIndexed": {
+    "indexed": 3,
+    "collection": "serviceflow_paraphrase_multilingual_minilm_l12_384_v1",
+    "demo": true
+  },
+  "ticketId": 30,
+  "ticketStatus": "CLOSED",
+  "handoffIdempotent": true,
+  "knowledgeId": 6,
+  "knowledgeStatus": "PUBLISHED",
+  "customerNotices": 100,
+  "scan": {
+    "scanned": 0,
+    "escalated": 0,
+    "delivered": 29
+  }
+}

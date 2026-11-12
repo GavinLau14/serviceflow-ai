@@ -4,7 +4,7 @@ Java 是业务权限和写操作的唯一入口，Python 负责推理与受约�
 
 | 业务模块 | 入口与核心实现 | 关键测试 |
 | --- | --- | --- |
-| 账号/数据范围 | [auth](../backend/src/main/java/com/serviceflow/auth/)、[MyBatis 工单查询](../backend/src/main/resources/mappers/) | WorkflowIntegrationTest、LoginRateLimitTest |
+| 账号/数据范围 | [auth](../backend/src/main/java/com/serviceflow/auth/)、[MyBatis 工单查询](../backend/src/main/resources/mappers/)、[账号安全](../frontend/src/components/AccountSecurity.vue) | WorkflowIntegrationTest、LoginRateLimitTest、PasswordChangeIntegrationTest |
 | 工单状态机/沟通 | [ticket](../backend/src/main/java/com/serviceflow/ticket/) | WorkflowIntegrationTest、ConcurrentUpdateTest |
 | AI 接入/客户确认/幂等 | [Java ai](../backend/src/main/java/com/serviceflow/ai/)、[Python core](../ai-service/serviceflow_ai/core.py)、[真实检索](../ai-service/serviceflow_ai/retrieval.py) | AiIntegrationTest、AiExecutionConcurrencyTest、Python test_contract / test_real_smoke |
 | 分派/SLA/审计/outbox | [operations](../backend/src/main/java/com/serviceflow/operations/) | OperationsIntegrationTest |
