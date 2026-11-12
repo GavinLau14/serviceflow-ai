@@ -2,7 +2,24 @@
 
 面向 Java 后端 + AI 应用工程实习的独立作品：客户提出售后问题，主管分派，客服处理并提交解决方案，客户确认后关闭。以可验证的数据权限、状态机与并发一致性作为业务基础。
 
-**当前交付：M1–M3 业务与 AI 服务，以及 M4 全栈本地交付。** 已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。M4 计划见 [任务清单](docs/TASKS.md)。无生产部署、无远程推送。
+**当前交付版本：v0.4.1。** M1–M4 的工单、协作运营、AI 服务及容器演示已经实现，后续补齐了客服工作台和分页通知。已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。当前仅用于本地演示，没有生产部署。
+
+[![CI](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml)
+
+[版本历史](CHANGELOG.md) · [业务模块与源码导航](docs/MODULES.md) · [版本与分支管理](docs/GITHUB_WORKFLOW.md) · [演示路线](docs/DEMO.md) · [验收任务](docs/TASKS.md)
+
+## 业务模块
+
+| 模块 | 已实现的业务能力 |
+| --- | --- |
+| 账号与权限 | 四类角色、客户本人/客服受派/主管本组/管理员全局范围、可撤销会话 |
+| 售后工单 | 建单、分派、处理、公开回复/内部备注、客户确认关闭、版本冲突检查 |
+| AI 售后助手 | 意图与字段合同、真实语义检索、来源引用、待确认工具草稿、幂等执行/人工接管 |
+| 运营协作 | 同组最小负载自动分派、SLA 扫描升级、事务审计与通知 outbox |
+| 通知收件箱 | 本人通知分页、未读筛选、全量未读计数、显式批量已读 |
+| 知识沉淀 | 已关闭工单手动整理、主管审核、保留来源；审核通过不自动发布到 AI 索引 |
+
+源码、接口、测试和面试阅读顺序见 [模块导航](docs/MODULES.md)。
 
 ## 架构
 
@@ -145,21 +162,23 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 同时提交两次真实 MySQL 更新并检查一次成功；`LoginRateLimitTest` 检查 Redis 限流。无 H2 替代，无测试覆盖率宣称。实际结果与限制见 [M1 验证记录](docs/M1_RESULTS.md)。GitHub Actions 工作流已配置；未推送，因此没有远程 CI 成功记录。
+`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 同时提交两次真实 MySQL 更新并检查一次成功；`LoginRateLimitTest` 检查 Redis 限流。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 71 项、浏览器 16 项，详见 [通知收件箱验证](docs/NOTIFICATION_INBOX_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
 
 ## 演示截图
 
-![客户确认关闭后的真实工作台](docs/images/lifecycle-desktop.png)
+![客服收件箱与工单处理区](docs/images/frontend-inbox-desktop.png)
+
+![通知收件箱](docs/images/notification-inbox-desktop.png)
 
 ## 目录
 
 ```text
-backend/       auth / ticket / common，MyBatis mapper、Flyway、JUnit 集成测试
+backend/       auth / ticket / ai / operations / collaboration，MyBatis、Flyway、JUnit
 frontend/      Vue 工作台、API 类型、组件、Playwright 业务闭环
 ai-service/    FastAPI/LangGraph、模型适配器、真实向量检索、pytest/lockfile
 scripts/       本地配置、API 启动、测试、幂等演示数据
-infra/         保留后续应用容器配置位置
-compose.yaml   业务与测试 MySQL / Redis
+infra/         Java / Python / Web Dockerfile、Nginx、Maven 镜像构建设置
+compose.yaml   完整应用与独立 MySQL / Redis / Qdrant、测试服务
 .github/       CI 配置
 docs/         上游评估、设计、接口、ADR、里程碑验证、任务清单
 ```
