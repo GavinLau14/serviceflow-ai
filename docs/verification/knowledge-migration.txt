@@ -1,0 +1,4 @@
+7	knowledge review note	1
+knowledge_entries	1	idx_knowledge_status_created	1	status	A	3	NULL	NULL		BTREE			YES	NULL
+knowledge_entries	1	idx_knowledge_status_created	2	created_at	A	9	NULL	NULL		BTREE			YES	NULL
+knowledge_entries	1	idx_knowledge_status_created	3	id	A	9	NULL	NULL		BTREE			YES	NULL

@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "baseUrl": "http://127.0.0.1:18080",
+  "ticketId": 34,
+  "ticketStatus": "CLOSED",
+  "rejectedId": 7,
+  "publishedId": 8,
+  "pendingId": 9,
+  "rejectionReasonRetained": true,
+  "retryIdempotent": true,
+  "reviewOverwriteRejected": true,
+  "crossTeamQueryIsolated": true,
+  "customerQueryForbidden": true,
+  "vectorPointsBefore": 3,
+  "vectorPointsAfter": 3,
+  "mobileNoOverflow": true,
+  "pageErrors": 0
+}

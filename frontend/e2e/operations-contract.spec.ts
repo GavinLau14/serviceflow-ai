@@ -90,18 +90,19 @@ test("a failed unread filter never presents the previous all-messages list as fi
 });
 
 test("knowledge review requires explicit confirmation and scopes actions by role", async ({ page }) => {
-  await mount(page, "OperationsView", { user: supervisor, view: "knowledge" }, { "/knowledge": [knowledge] });
+  const inbox = { items: [knowledge], total: 1, pendingTotal: 1, page: 1, size: 20 };
+  await mount(page, "OperationsView", { user: supervisor, view: "knowledge" }, { "/knowledge/inbox": inbox });
   let reviews = 0;
-  await page.route("**/api/knowledge/8/review", async route => { reviews++; expect(route.request().postDataJSON()).toEqual({ approved: true, confirmed: true }); await route.fulfill({ json: { ...knowledge, status: "PUBLISHED" } }); });
+  await page.route("**/api/knowledge/8/review", async route => { reviews++; inbox.items = []; inbox.total = inbox.pendingTotal = 0; expect(route.request().postDataJSON()).toEqual({ approved: true, confirmed: true }); await route.fulfill({ json: { ...knowledge, status: "PUBLISHED" } }); });
   const approve = page.getByRole("button", { name: "审核通过" });
   await expect(approve).toBeDisabled();
   expect(reviews).toBe(0);
   await page.getByText("我已审核内容，确认提交审核结果", { exact: true }).click();
   await approve.click();
-  await expect(page.getByText("已通过", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "当前筛选暂无记录", exact: true })).toBeVisible();
   expect(reviews).toBe(1);
-  await mount(page, "OperationsView", { user: agent, view: "knowledge" }, { "/knowledge": [knowledge] });
-  await expect(page.getByText("电源排查", { exact: true })).toBeVisible();
+  await mount(page, "OperationsView", { user: agent, view: "knowledge" }, { "/knowledge/inbox": { items: [knowledge], total: 1, pendingTotal: 1, page: 1, size: 20 } });
+  await expect(page.getByRole("heading", { name: "电源排查", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "审核通过" })).toHaveCount(0);
 });
 

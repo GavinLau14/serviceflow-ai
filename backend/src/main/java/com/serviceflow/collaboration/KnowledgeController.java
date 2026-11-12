@@ -15,10 +15,17 @@ public class KnowledgeController {
   public KnowledgeController(KnowledgeService knowledge) { this.knowledge=knowledge; }
 
   public record Draft(@NotBlank @Size(max=160) String title,@NotBlank @Size(max=10000) String content,boolean confirmed) {}
-  public record Review(@NotNull Boolean approved,boolean confirmed) {}
+  public record Review(@NotNull Boolean approved,boolean confirmed,@Size(max=1000) String note) {}
 
   @GetMapping("/knowledge")
   public List<Knowledge> list(@AuthenticationPrincipal User u) { return knowledge.list(u); }
+
+  @GetMapping("/knowledge/inbox")
+  public KnowledgeService.Page inbox(@AuthenticationPrincipal User u,
+      @RequestParam(defaultValue="1") int page,@RequestParam(defaultValue="20") int size,
+      @RequestParam(defaultValue="") String status,@RequestParam(defaultValue="") String q) {
+    return knowledge.inbox(u,page,size,status,q);
+  }
 
   @PostMapping("/tickets/{id}/knowledge")
   @ResponseStatus(HttpStatus.CREATED)

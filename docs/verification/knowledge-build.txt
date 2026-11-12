@@ -1,0 +1,13 @@
+
+> serviceflow-web@0.1.0 build
+> vue-tsc --noEmit && vite build
+
+vite v7.3.8 building client environment for production...
+transforming...
+✓ 1624 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.45 kB │ gzip:   0.34 kB
+dist/assets/index-BNVO770H.css  394.94 kB │ gzip:  55.06 kB
+dist/assets/index-DhYJ-uWx.js   418.51 kB │ gzip: 144.46 kB
+✓ built in 1.53s
