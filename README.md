@@ -49,12 +49,14 @@ Java 是唯一业务写入方。Python 不持有业务数据库凭据；所有�
 ## 一键容器启动（推荐演示）
 
 ```bash
+git clone https://github.com/GavinLau14/serviceflow-ai.git
+cd serviceflow-ai
 ./scripts/stack-up.sh
 # 浏览器 http://127.0.0.1:18080
 python3 scripts/smoke-stack.py --with-ai
 ```
 
-只需Docker Compose；从源码构建Java、前端和Python镜像，不依赖宿主开发环境。初次下载依赖和真实模型需要联网。[部署与故障恢复手册](docs/DEPLOYMENT.md) · [演示路线](docs/DEMO.md) · [架构](docs/ARCHITECTURE.md) · [M4验证](docs/M4_RESULTS.md)。
+需要Docker Compose v2、Bash和Python 3.9+（初始化与演示脚本使用）；Java、前端和Python服务从源码构建镜像，不需要本机JDK、Node或Python 3.12虚拟环境。初次下载依赖和真实模型需要联网。[部署与故障恢复手册](docs/DEPLOYMENT.md) · [演示路线](docs/DEMO.md) · [架构](docs/ARCHITECTURE.md) · [M4验证](docs/M4_RESULTS.md)。
 
 ## 本机开发启动
 
