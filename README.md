@@ -2,7 +2,7 @@
 
 面向 Java 后端 + AI 应用工程实习的独立作品：客户提出售后问题，主管分派，客服处理并提交解决方案，客户确认后关闭。以可验证的数据权限、状态机与并发一致性作为业务基础。
 
-**当前交付版本：v0.8.0。** M1–M4 的工单、协作运营、AI 服务及容器演示已经实现，后续补齐了客服工作台、分页通知、账号改密、知识审核工作台、受控知识发布及索引核验恢复。已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。当前仅用于本地演示，没有生产部署。
+**当前交付版本：v0.9.0。** M1–M4 的工单、协作运营、AI 服务及容器演示已经实现，后续补齐了客服工作台、分页通知、账号改密、知识审核工作台、受控知识发布及索引核验恢复和SLA风险队列。已接入 FastAPI/LangGraph、真实本地多语言 Embedding/Qdrant、来源引用、受约束工具提案、客户确认和 Java 幂等执行。没有 LLM Key 时为 `retrieval_only`，只返回真实检索原文，不生成提案；远端 LLM 质量尚未实测。当前仅用于本地演示，没有生产部署。
 
 [![CI](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml)
 
@@ -15,7 +15,7 @@
 | 账号与权限 | 四类角色与数据范围、可撤销会话、本人改密、凭据版本使旧会话失效 |
 | 售后工单 | 建单、分派、处理、公开回复/内部备注、客户确认关闭、版本冲突检查 |
 | AI 售后助手 | 意图与字段合同、真实语义检索、来源引用、待确认工具草稿、幂等执行/人工接管 |
-| 运营协作 | 同组最小负载自动分派、SLA 扫描升级、事务审计与通知 outbox |
+| 运营协作 | 同组最小负载自动分派、SLA 扫描升级、客户等待时长补偿、权限风险队列、事务审计与通知 outbox |
 | 通知收件箱 | 本人通知分页、未读筛选、全量未读计数、显式批量已读 |
 | 索引运营 | 管理员分页状态面板、真实向量核验、缺失停止引用、同版本显式修复及修复审计 |
 | 知识沉淀 | 待审核队列、分页与文本检索、来源与审核人、退回理由和不可覆盖的审核记录；审核通过不自动发布，管理员独立脱敏授权后进入真实向量检索，支持版本替换与撤回 |
@@ -165,7 +165,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 检查并发版本更新；`LoginRateLimitTest` 验证分钟边界；`PasswordChangeIntegrationTest` 验证改密、并发和回滚；`KnowledgeInboxIntegrationTest` 与 `KnowledgeReviewConcurrencyTest` 验证知识权限、历史分页及双人审核防覆盖。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 95 项、Python 40 项（含真实 Embedding/Qdrant）、浏览器 29 项，详见 [索引恢复验证](docs/INDEX_OPERATIONS_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
+`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 检查并发版本更新；`LoginRateLimitTest` 验证分钟边界；`PasswordChangeIntegrationTest` 验证改密、并发和回滚；`KnowledgeInboxIntegrationTest` 与 `KnowledgeReviewConcurrencyTest` 验证知识权限、历史分页及双人审核防覆盖。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 101 项、Python 40 项（含真实 Embedding/Qdrant）、浏览器 39 项，详见 [SLA 风险工作台验证](docs/SLA_WORKBENCH_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
 
 ## 演示截图
 

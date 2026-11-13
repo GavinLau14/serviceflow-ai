@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { ElAlert, ElButton, ElCheckbox, ElInput, ElSkeleton, ElTag } from "element-plus";
 import { api, time, type User } from "../api";
 
-interface Sla { ticketId: number; firstResponseDue: string | null; resolutionDue: string | null; firstRespondedAt: string | null; escalatedAt: string | null; firstResponseBreached: boolean; resolutionBreached: boolean; resolutionPaused: boolean }
+interface Sla { ticketId: number; firstResponseDue: string | null; resolutionDue: string | null; firstRespondedAt: string | null; escalatedAt: string | null; firstResponseBreached: boolean; resolutionBreached: boolean; resolutionPaused: boolean; resolutionPausedAt?:string|null; pausedSeconds?:number; asOf?:string }
 interface Audit { id: number; ticketId: number; actorId: number | null; actorName: string | null; action: string; message: string; createdAt: string }
 const props = defineProps<{ id: number; user: User; status: string }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -13,6 +13,7 @@ const title = ref(""), content = ref(""), confirmed = ref(false), submitting = r
 const staff = computed(() => props.user.role !== "CUSTOMER");
 const canDraft = computed(() => staff.value && props.status === "CLOSED");
 let request = 0;
+onBeforeUnmount(()=>request++);
 const displayTime = (value: string | null) => value ? time(value) : "暂未记录";
 async function load() {
   const current = ++request;
@@ -22,6 +23,7 @@ async function load() {
   }
   loading.value = true;
   slaError.value = auditError.value = "";
+  sla.value=null;audit.value=[];
   const results = await Promise.allSettled([
     api<Sla>(`/tickets/${props.id}/sla`),
     staff.value ? api<Audit[]>(`/tickets/${props.id}/audit`) : Promise.resolve([] as Audit[]),
@@ -68,7 +70,9 @@ async function submitDraft() {
       <el-alert v-if="slaError" :title="slaError" type="error" :closable="false" role="alert" />
       <el-skeleton v-if="loading" :rows="2" animated />
       <template v-else-if="sla">
-        <dl class="sla-facts"><div><dt>首次响应截止</dt><dd>{{ displayTime(sla.firstResponseDue) }}</dd><span v-if="sla.firstRespondedAt" class="sla-note">已响应 · {{ time(sla.firstRespondedAt) }}</span><el-tag v-else-if="sla.firstResponseBreached" size="small" type="danger" effect="plain">首次响应已超时</el-tag></div><div><dt>解决截止</dt><dd>{{ displayTime(sla.resolutionDue) }}</dd><el-tag v-if="sla.resolutionPaused" size="small" type="info" effect="plain">等待客户，暂停超时升级</el-tag><el-tag v-else-if="sla.resolutionBreached" size="small" type="danger" effect="plain">解决已超时</el-tag></div></dl>
+        <dl class="sla-facts"><div><dt>首次响应截止</dt><dd>{{ displayTime(sla.firstResponseDue) }}</dd><span v-if="sla.firstRespondedAt" class="sla-note">已响应 · {{ time(sla.firstRespondedAt) }}</span><el-tag v-else-if="sla.firstResponseBreached" size="small" type="danger" effect="plain">首次响应已超时</el-tag></div><div><dt>解决截止</dt><dd>{{ displayTime(sla.resolutionDue) }}</dd><el-tag v-if="sla.resolutionPaused" size="small" type="info" effect="plain">等待客户，解决时钟已暂停</el-tag><el-tag v-else-if="sla.resolutionBreached" size="small" type="danger" effect="plain">解决已超时</el-tag></div></dl>
+        <p v-if="sla.resolutionPaused" class="sla-note">当前显示已结算截止时间，恢复处理时按本轮等待时长顺延。</p>
+        <p v-if="sla.pausedSeconds!==undefined" class="sla-note">累计等待客户 {{sla.pausedSeconds}} 秒{{sla.resolutionPaused?'（含当前暂停）':''}}<span v-if="sla.asOf"> · 截至 {{time(sla.asOf)}}</span></p>
         <p v-if="sla.escalatedAt" class="sla-escalated">已于 {{ time(sla.escalatedAt) }} 触发超时升级。</p>
       </template>
       <p v-else-if="!slaError" class="empty-note">暂无服务时限记录。</p>

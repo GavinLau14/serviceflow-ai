@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "ticketId": 40,
+  "deadlineShiftMs": 1620,
+  "pausedSeconds": 3,
+  "firstResponseDeadlineUnchanged": true,
+  "checks": [
+    "waiting timestamp recorded",
+    "resume settles real wait duration",
+    "scoped staff queue and customer403",
+    "actual phone tool-rail navigation",
+    "risk queue opens authorized ticket detail",
+    "closed ticket removed from active risk queue",
+    "390px no horizontal overflow"
+  ],
+  "llmQuality": "NOT_RUN: no model key"
+}
