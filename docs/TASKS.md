@@ -44,3 +44,6 @@ M4已完成本地工程交付；远端真实LLM验收仍按M2未完成项保留�
 - [x] v0.8 索引核验与恢复：真实点/schema/payload/向量核验、同版本显式修复、操作代次防迟到覆盖、修复审计与管理员状态面板；见 INDEX_OPERATIONS_RESULTS.md。
 
 - [x] v0.9 SLA客户等待累计补偿、同事务结算/回滚/并发一次性、权限风险队列与手机导航；见 SLA_WORKBENCH_RESULTS.md。
+
+- [x] v0.9交付整理：进阶Demo、版本导航与有证据的面试讲解；本地公开摘要v3对齐已审核USB-C来源。
+- [ ] v0.10管理员AI运行元数据与健康核验，见 superpowers/plans/2026-11-13-ai-operations.md（待开发，尚无API/UI）。

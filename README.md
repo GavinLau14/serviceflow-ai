@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/GavinLau14/serviceflow-ai/actions/workflows/ci.yml)
 
-[版本历史](CHANGELOG.md) · [业务模块与源码导航](docs/MODULES.md) · [版本与分支管理](docs/GITHUB_WORKFLOW.md) · [演示路线](docs/DEMO.md) · [验收任务](docs/TASKS.md)
+[版本历史](CHANGELOG.md) · [业务模块与源码导航](docs/MODULES.md) · [版本与分支管理](docs/GITHUB_WORKFLOW.md) · [演示路线](docs/DEMO.md) · [源码与面试讲解](docs/INTERVIEW_GUIDE.md) · [验收任务](docs/TASKS.md)
 
 ## 业务模块
 
