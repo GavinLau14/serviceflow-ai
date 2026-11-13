@@ -144,6 +144,7 @@ public class TicketService {
         old,
         target,
         req.message().strip());
+    operations.transitionSla(t, old);
     if (target.equals("WAITING_CUSTOMER")) operations.firstResponse(t);
     operations.record(t, u.id, target.equals("CLOSED") ? "CUSTOMER_CONFIRMED" :
         old.equals("WAITING_CUSTOMER") ? "CUSTOMER_REJECTED" : "STATUS_CHANGED", req.message().strip());

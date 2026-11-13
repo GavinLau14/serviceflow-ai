@@ -1,0 +1,46 @@
+
+> serviceflow-web@0.1.0 test:e2e
+> playwright test
+
+
+Running 35 tests using 1 worker
+
+(node:32063) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/ai-contract.spec.ts:96:1 › public knowledge has a version preview and refreshed withdrawal removes old advice (846ms)
+  ✓   2 e2e/ai-contract.spec.ts:117:1 › fake contract: retrieval extracts stay escaped and cannot execute; request errors recover (1.5s)
+  ✓   3 e2e/ai-contract.spec.ts:168:1 › fake contract: persisted drafts require explicit confirmation and emit created ticket (1.2s)
+  ✓   4 e2e/ai-contract.spec.ts:211:1 › fake contract: disabled and error modes offer manual recovery (706ms)
+  ✓   5 e2e/ai-contract.spec.ts:243:1 › fake contract: expired history cannot execute a proposal (618ms)
+  ✓   6 e2e/ai-contract.spec.ts:260:1 › fake contract: admin alone sees index action and service status (346ms)
+  ✓   7 e2e/ai-contract.spec.ts:284:1 › fake contract: human handoff requires product category and explicit consent (806ms)
+  ✓   8 e2e/inbox-redesign.spec.ts:3:1 › service inbox preserves context, keyboard selection and mobile navigation (292ms)
+  ✓   9 e2e/index-operations-contract.spec.ts:18:1 › inspection detects missing points and repair requires confirmation without republishing (886ms)
+  ✓  10 e2e/index-operations-contract.spec.ts:26:1 › failed refresh clears stale operations and non-admin never requests metadata (280ms)
+  ✓  11 e2e/index-operations-contract.spec.ts:29:1 › team staff cannot see or operate the global index console (100ms)
+  ✓  12 e2e/knowledge-contract.spec.ts:12:1 › rejection requires a reason, refreshes the pending queue and retains an escaped review record (303ms)
+  ✓  13 e2e/knowledge-contract.spec.ts:45:1 › knowledge pages recover after the last item is approved and search preserves scoped pending counts (425ms)
+  ✓  14 e2e/knowledge-contract.spec.ts:70:1 › failed review retains the note and a failed new filter clears the previous content (284ms)
+  ✓  15 e2e/knowledge-contract.spec.ts:89:1 › phone staff can read and return to the queue while customers never query knowledge (239ms)
+  ✓  16 e2e/operations-contract.spec.ts:16:1 › notifications mark read only on request and render escaped content (343ms)
+  ✓  17 e2e/operations-contract.spec.ts:30:1 › notification pagination and unread filter use server counts and recover from an empty last page (353ms)
+  ✓  18 e2e/operations-contract.spec.ts:54:1 › read-all needs confirmation and failed updates leave messages unread (399ms)
+  ✓  19 e2e/operations-contract.spec.ts:80:1 › a failed unread filter never presents the previous all-messages list as filtered results (243ms)
+  ✓  20 e2e/operations-contract.spec.ts:92:1 › knowledge review requires explicit confirmation and scopes actions by role (332ms)
+  ✓  21 e2e/operations-contract.spec.ts:109:1 › closed ticket knowledge uses manual confirmed content and renders SLA and audit (270ms)
+  ✓  22 e2e/operations-contract.spec.ts:128:1 › notification errors recover through refresh and empty state stays truthful (283ms)
+  ✓  23 e2e/operations-contract.spec.ts:141:1 › customer ticket operations never request staff endpoints or expose their controls (590ms)
+  ✓  24 e2e/password-contract.spec.ts:19:1 › password change requires matching input and explicit consent, then clears the local session (657ms)
+  ✓  25 e2e/password-contract.spec.ts:43:1 › failed password changes keep the session and closing the panel clears sensitive fields (1.1s)
+  ✓  26 e2e/password-contract.spec.ts:59:1 › account security is reachable on a phone without horizontal overflow (543ms)
+  ✓  27 e2e/publication-contract.spec.ts:19:1 › publication requires separate public content and both consents, then supports retry and confirmed withdrawal (672ms)
+  ✓  28 e2e/publication-contract.spec.ts:30:1 › team staff can inspect publication state but cannot publish (140ms)
+  ✓  29 e2e/sla-inbox-contract.spec.ts:12:1 › SLA risk filters and pagination use server results and open the original ticket (337ms)
+  ✓  30 e2e/sla-inbox-contract.spec.ts:19:1 › SLA query failures clear stale rows and customer never queries internal SLA (243ms)
+  ✓  31 e2e/sla-inbox-contract.spec.ts:22:1 › customer has no internal risk data requests (105ms)
+  ✓  32 e2e/sla-inbox-contract.spec.ts:25:1 › phone risk queue retains filters and ticket access without horizontal overflow (183ms)
+  ✓  33 e2e/sla-inbox-contract.spec.ts:29:1 › ticket SLA explains accumulated wait and removes old facts after a failed refresh (166ms)
+  ✓  34 e2e/sla-inbox-contract.spec.ts:36:1 › actual app phone navigation reaches SLA queue through the persistent tool rail (166ms)
+  ✓  35 e2e/workflow.spec.ts:16:1 › 客户提交 → 主管分派 → 客服处理 → 客户确认关闭 (4.1s)
+
+  35 passed (20.5s)

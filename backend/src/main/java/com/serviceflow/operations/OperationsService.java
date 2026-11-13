@@ -24,16 +24,16 @@ public class OperationsService {
 
   public record SlaView(long ticketId, LocalDateTime firstResponseDue, LocalDateTime resolutionDue,
       LocalDateTime firstRespondedAt, LocalDateTime escalatedAt, boolean firstResponseBreached,
-      boolean resolutionBreached, boolean resolutionPaused) {}
+      boolean resolutionBreached, boolean resolutionPaused,LocalDateTime resolutionPausedAt,long pausedSeconds,LocalDateTime asOf) {}
   public record AuditView(long id,long ticketId,Long actorId,String actorName,String action,
       String message,LocalDateTime createdAt) {}
   public record Notice(long id,long ticketId,String title,String body,boolean read,LocalDateTime createdAt) {}
   public record NoticePage(List<Notice> items,long total,long unreadTotal,int page,int size) {}
   public record ScanResult(int scanned,int escalated,int delivered) {}
   private record Sla(LocalDateTime firstResponseDue, LocalDateTime resolutionDue,
-      LocalDateTime firstRespondedAt, LocalDateTime escalatedAt) {}
+      LocalDateTime firstRespondedAt, LocalDateTime escalatedAt,LocalDateTime pausedAt,long pausedMicros) {}
 
-  private LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC); }
+  private LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.MICROS); }
   private static LocalDateTime date(ResultSet rs,String col) throws SQLException {
     return rs.getObject(col,LocalDateTime.class);
   }
@@ -69,6 +69,22 @@ public class OperationsService {
   @Transactional
   public void firstResponse(Ticket t) {
     db.update("UPDATE ticket_sla SET first_responded_at=? WHERE ticket_id=? AND first_responded_at IS NULL",now(),t.id);
+  }
+
+  static long elapsedMicros(LocalDateTime from,LocalDateTime to){return from==null?0:Math.max(0,java.time.temporal.ChronoUnit.MICROS.between(from,to));}
+  static long pausedSeconds(long settled,LocalDateTime from,LocalDateTime at){return Math.addExact(settled,elapsedMicros(from,at))/1_000_000;}
+
+  /** Caller has already updated/locked the ticket; lock SLA second, matching the scanner. */
+  @Transactional
+  public void transitionSla(Ticket ticket,String oldStatus){
+    LocalDateTime at=now();Sla state=sla(ticket.id,true);
+    if(ticket.status.equals("WAITING_CUSTOMER")&&!oldStatus.equals("WAITING_CUSTOMER")){
+      db.update("UPDATE ticket_sla SET resolution_paused_at=? WHERE ticket_id=? AND resolution_paused_at IS NULL",at,ticket.id);
+    }else if(oldStatus.equals("WAITING_CUSTOMER")&&!ticket.status.equals("WAITING_CUSTOMER")&&state.pausedAt()!=null){
+      long duration=elapsedMicros(state.pausedAt(),at);
+      LocalDateTime due=state.resolutionDue().plus(duration,java.time.temporal.ChronoUnit.MICROS);
+      db.update("UPDATE ticket_sla SET resolution_due=?,paused_micros=?,resolution_paused_at=NULL WHERE ticket_id=?",due,Math.addExact(state.pausedMicros(),duration),ticket.id);
+    }
   }
 
   @Transactional
@@ -107,7 +123,7 @@ public class OperationsService {
 
   private Sla sla(long id,boolean lock) {
     return db.queryForObject("SELECT * FROM ticket_sla WHERE ticket_id=?"+(lock?" FOR UPDATE":""),
-        (rs,n)->new Sla(date(rs,"first_response_due"),date(rs,"resolution_due"),date(rs,"first_responded_at"),date(rs,"escalated_at")),id);
+        (rs,n)->new Sla(date(rs,"first_response_due"),date(rs,"resolution_due"),date(rs,"first_responded_at"),date(rs,"escalated_at"),date(rs,"resolution_paused_at"),rs.getLong("paused_micros")),id);
   }
 
   @Transactional(readOnly=true)
@@ -115,7 +131,7 @@ public class OperationsService {
     Sla s=sla(t.id,false);LocalDateTime at=now();boolean open=!t.status.equals("CLOSED");
     return new SlaView(t.id,s.firstResponseDue(),s.resolutionDue(),s.firstRespondedAt(),s.escalatedAt(),
         open&&s.firstRespondedAt()==null&&!s.firstResponseDue().isAfter(at),
-        open&&!t.status.equals("WAITING_CUSTOMER")&&!s.resolutionDue().isAfter(at),t.status.equals("WAITING_CUSTOMER"));
+        open&&!t.status.equals("WAITING_CUSTOMER")&&!s.resolutionDue().isAfter(at),t.status.equals("WAITING_CUSTOMER"),s.pausedAt(),pausedSeconds(s.pausedMicros(),s.pausedAt(),at),at);
   }
 
   @Transactional(readOnly=true)

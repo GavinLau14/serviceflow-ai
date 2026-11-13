@@ -42,3 +42,5 @@ M4已完成本地工程交付；远端真实LLM验收仍按M2未完成项保留�
 - [x] v0.7 受控知识发布：独立公开摘要、管理员双确认、真实向量索引、失败重试、不可变版本与撤回、旧引用及待执行提案校验；见 KNOWLEDGE_PUBLICATION_RESULTS.md。
 
 - [x] v0.8 索引核验与恢复：真实点/schema/payload/向量核验、同版本显式修复、操作代次防迟到覆盖、修复审计与管理员状态面板；见 INDEX_OPERATIONS_RESULTS.md。
+
+- [x] v0.9 SLA客户等待累计补偿、同事务结算/回滚/并发一次性、权限风险队列与手机导航；见 SLA_WORKBENCH_RESULTS.md。

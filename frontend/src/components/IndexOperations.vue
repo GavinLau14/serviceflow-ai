@@ -57,7 +57,7 @@ defineExpose({refresh:load});
      <el-button v-else-if="['PENDING','FAILED'].includes(row.cleanupState)" :disabled="loading||busy" @click="action(row,'withdraw')">重试清理</el-button>
     </li>
    </ul>
-   <el-pagination v-if="result.total>20" class="index-pages" layout="prev, pager, next" :pager-count="5" :current-page="page" :page-size="20" :total="result.total" :disabled="loading||busy" @current-change="value=>{page=value;load();}" />
+   <el-pagination v-if="result.total>20" class="index-pages" prev-text="上一页" next-text="下一页" layout="prev, pager, next" :pager-count="5" :current-page="page" :page-size="20" :total="result.total" :disabled="loading||busy" @current-change="value=>{page=value;load();}" />
   </template>
  </details>
 </template>
