@@ -49,4 +49,7 @@ public class AiGateway {
   public AiModels.Output assist(String message) throws Exception {
     return json.readValue(call("/assist", Map.of("message", message)), AiModels.Output.class);
   }
+  public AiModels.Output assist(String message,java.util.List<com.serviceflow.collaboration.PublicationService.Document> publications) throws Exception {
+    return json.readValue(call("/assist",publications.isEmpty()?Map.of("message",message):Map.of("message",message,"publications",publications)),AiModels.Output.class);
+  }
 }

@@ -93,6 +93,27 @@ async function openAssist(page: Page) {
   ).toBeVisible();
 }
 
+test("public knowledge has a version preview and refreshed withdrawal removes old advice", async ({ page }) => {
+  await setup(page);
+  const ident="2d21c5c2-19ac-41f7-a27b-66b03cfe4278",text="人工授权的公开排查摘要";
+  const run={...retrieval,id:"public-fixture",answer:text,citations:[{id:'pub:'+ident,title:'公开知识',source:'knowledge://serviceflow/publications/'+ident+'/v1',text,score:.9}]};
+  let withdrawn=false;
+  await page.route('**/api/ai/runs',route=>route.fulfill({json:[withdrawn?{...run,mode:'error',answer:'知识来源已撤回，请重新咨询。',citations:[]}:run]}));
+  await page.route('**/api/ai/assist',route=>route.fulfill({json:run}));
+  await page.route('**/api/knowledge/publications/'+ident,route=>route.fulfill({json:{title:'公开知识',version:1,text}}));
+  await openAssist(page);
+  await page.getByLabel('遇到了什么问题？',{exact:true}).fill('公开排查方法');
+  await page.getByRole('button',{name:'查找帮助',exact:true}).click();
+  await page.getByText('公开知识',{exact:true}).click();
+  await page.getByRole('button',{name:'查看公开来源版本',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'公开知识 · v1',exact:true})).toBeVisible();
+  withdrawn=true;
+  await page.getByRole('button',{name:'刷新历史',exact:true}).click();
+  await expect(page.getByRole('region',{name:'助手结果'})).toContainText('知识来源已撤回');
+  await expect(page.getByText(text,{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'公开知识 · v1',exact:true})).toHaveCount(0);
+});
+
 test("fake contract: retrieval extracts stay escaped and cannot execute; request errors recover", async ({
   page,
 }) => {

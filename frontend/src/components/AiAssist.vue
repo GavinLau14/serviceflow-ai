@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
 import { ElDrawer, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTag, ElCheckbox, ElSelect, ElOption } from "element-plus";
-import { api, type AiRun, type AiMode, type Ticket, priorityNames } from "../api";
+import { api, ApiError, type AiRun, type AiMode, type Ticket, priorityNames } from "../api";
 const model = defineModel<boolean>({ required: true });
 const emit = defineEmits<{ created: [ticket: Ticket]; manual: [] }>();
 const message = ref("");
@@ -10,6 +10,8 @@ const history = ref<AiRun[]>([]);
 const busy = ref(false), executing = ref(false), historyBusy = ref(false);
 const error = ref(""), historyError = ref(""), confirmed = ref(false), humanConfirmed=ref(false);
 const humanCategory=ref<""|"DEVICE"|"APPLIANCE">("");
+const sourceBusy=ref(false),sourcePreview=ref<{title:string;text:string;version:number}|null>(null);
+watch([()=>current.value?.id,()=>current.value?.citations.map(c=>c.id).join(',')],()=>{sourcePreview.value=null;});
 let active = true;
 onUnmounted(() => { active = false; });
 const modeNames: Record<AiMode, string> = {
@@ -19,7 +21,7 @@ const modeNames: Record<AiMode, string> = {
   error: "服务暂不可用 · error",
 };
 const canExecute = computed(() => current.value?.mode === "rag" && current.value.status === "PENDING" && !!current.value.proposal && !current.value.ticketId);
-const pending = computed(() => busy.value || executing.value);
+const pending = computed(() => busy.value || executing.value || sourceBusy.value);
 async function loadHistory() {
   if (historyBusy.value) return;
   historyBusy.value = true;
@@ -28,9 +30,11 @@ async function loadHistory() {
     const runs = await api<AiRun[]>("/ai/runs");
     if (active) {
       const refreshed = runs.find((run) => run.id === current.value?.id);
-      if (current.value?.status === "PENDING" && refreshed && refreshed.status !== "PENDING") {
+      if (refreshed) {
         current.value = refreshed;
         confirmed.value = false;
+      } else if(current.value?.citations.some(c=>c.id.startsWith('pub:'))) {
+        current.value=null;confirmed.value=false;sourcePreview.value=null;
       }
       history.value = current.value && !runs.some((run) => run.id === current.value?.id)
         ? [current.value, ...runs].slice(0, 20) : runs;
@@ -40,6 +44,14 @@ async function loadHistory() {
   } finally {
     if (active) historyBusy.value = false;
   }
+}
+async function viewPublicSource(id:string){
+  if(pending.value||!id.startsWith('pub:'))return;
+  sourceBusy.value=true;sourcePreview.value=null;error.value='';
+  try{const value=await api<{title:string;text:string;version:number}>(`/knowledge/publications/${encodeURIComponent(id.slice(4))}`);if(active)sourcePreview.value=value;}
+  catch(e){if(active){error.value=e instanceof ApiError&&e.status===404?'该知识已撤回或尚未就绪，请重新咨询。':e instanceof Error?e.message:'来源暂不可用';
+    if(e instanceof ApiError&&e.status===404){current.value=null;confirmed.value=false;await loadHistory();}}}
+  finally{if(active)sourceBusy.value=false;}
 }
 watch(model, (open) => { if (open) loadHistory(); });
 watch(current,()=>{humanConfirmed.value=false;humanCategory.value="";});
@@ -134,9 +146,11 @@ function manual() {
           <details v-for="citation in current.citations" :key="citation.id">
             <summary>{{ citation.title }}</summary>
             <p class="muted assist-source">来源：{{ citation.source }} · {{ citation.id }}</p>
+            <el-button v-if="citation.id.startsWith('pub:')" text :loading="sourceBusy" :disabled="pending" @click="viewPublicSource(citation.id)">查看公开来源版本</el-button>
             <p class="preserve-text">{{ citation.text }}</p>
           </details>
         </div>
+        <section v-if="sourcePreview" class="assist-citations"><h3>{{ sourcePreview.title }} · v{{ sourcePreview.version }}</h3><p class="preserve-text">{{ sourcePreview.text }}</p></section>
         <section v-if="canExecute && current.proposal" class="next-action assist-proposal">
           <h3>待确认的工单草稿</h3>
           <p class="muted">草稿尚未提交。请核对内容；草稿在生成 30 分钟后过期。</p>

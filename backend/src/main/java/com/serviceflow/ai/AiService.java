@@ -22,14 +22,19 @@ public class AiService {
   private final TicketService tickets;
   private final TicketMapper ticketMapper;
   private final OperationsService operations;
+  private final com.serviceflow.collaboration.PublicationService publications;
+  private final org.springframework.transaction.support.TransactionTemplate transactions;
 
-  public AiService(AiGateway gateway, AiMapper runs, ObjectMapper json, TicketService tickets, TicketMapper ticketMapper, OperationsService operations) {
+  public AiService(AiGateway gateway, AiMapper runs, ObjectMapper json, TicketService tickets, TicketMapper ticketMapper, OperationsService operations,
+      com.serviceflow.collaboration.PublicationService publications,org.springframework.transaction.PlatformTransactionManager manager) {
     this.gateway = gateway;
     this.runs = runs;
     this.json = json;
     this.tickets = tickets;
     this.ticketMapper = ticketMapper;
     this.operations = operations;
+    this.publications=publications;
+    this.transactions=new org.springframework.transaction.support.TransactionTemplate(manager);
   }
 
   private Output failure(String mode, String answer) {
@@ -43,11 +48,16 @@ public class AiService {
     if (!gateway.enabled()) output = failure("disabled", "AI 未配置，尚未执行模型推理；请通过人工售后入口提交问题。");
     else
       try {
-        output = validate(gateway.assist(message), message);
+        output = validate(gateway.assist(message,publications.catalog()), message);
       } catch (Exception e) {
         if (e instanceof InterruptedException) Thread.currentThread().interrupt();
         output = failure("error", "AI 服务暂不可用，未执行任何业务操作；请转人工处理。");
       }
+    Output candidate=output;
+    return transactions.execute(status->persist(user,message,publications.safe(candidate,true),started));
+  }
+
+  private RunView persist(User user,String message,Output output,long started) {
     Row row = new Row();
     row.id = UUID.randomUUID().toString();
     row.customerId = user.id;
@@ -141,6 +151,7 @@ public class AiService {
   }
 
   private RunView view(Row row, Output out) {
+    out=publications.safe(out,false);
     return new RunView(
         row.id,
         out.mode(),
@@ -179,6 +190,7 @@ public class AiService {
     Output out = decode(row);
     Proposal p = out.proposal();
     if (p == null) throw ApiException.bad("此次 AI 结果没有可执行的建单提案");
+    publications.requireCurrent(out);
     Ticket t =
         tickets.create(
             user,

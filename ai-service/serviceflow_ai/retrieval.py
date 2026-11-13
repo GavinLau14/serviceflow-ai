@@ -2,11 +2,18 @@
 import threading
 import uuid
 from qdrant_client import QdrantClient, models
-from .core import Settings, Citation
+from .core import Settings, Citation, PublicDocument
 
 MODEL="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 DIMENSION=384
 COLLECTION="serviceflow_paraphrase_multilingual_minilm_l12_384_v1"
+PUBLIC_COLLECTION="serviceflow_publications_multilingual_minilm_l12_384_v1"
+
+def verified_publication(payload,publications):
+    if not isinstance(payload,dict) or not isinstance(payload.get("id"),str) or type(payload.get("version")) is not int: return None
+    expected=next((d for d in publications if d.id==payload["id"]),None)
+    if expected and payload.get("embedding_model")==MODEL and all(payload.get(k)==v for k,v in expected.model_dump().items()): return expected
+    return None
 DEMO_KB=(
     {"id":"demo-appliance-ac","title":"演示知识：空调报修","source":"demo://serviceflow/appliance-ac/v1","text":"【虚构演示知识，非真实服务政策】空调无法制冷、空调不制冷可提交家电 APPLIANCE 报修。描述应记录用户原话和故障现象。系统仅形成待确认草稿，客户确认后才创建工单；不承诺到达时间、价格或保修。"},
     {"id":"demo-device-computer","title":"演示知识：电脑设备报修","source":"demo://serviceflow/device-computer/v1","text":"【虚构演示知识，非真实服务政策】电脑无法开机、显示器故障可提交设备 DEVICE 报修。记录用户提供的故障描述，不索取密码。AI 只能形成待确认草稿，不能读取真实工单状态。"},
@@ -19,6 +26,7 @@ class QdrantRetrieval:
         self.client=QdrantClient(url=settings.qdrant_url,timeout=8,check_compatibility=False)
         self._model=None
         self._model_lock=threading.Lock()
+        self._write_lock=threading.Lock()
 
     def _embedding(self):
         with self._model_lock:
@@ -28,7 +36,25 @@ class QdrantRetrieval:
             return self._model
 
     def health(self):
-        return self.client.collection_exists(COLLECTION) and self.client.count(COLLECTION,exact=True).count>0
+        return any(self.client.collection_exists(c) and self.client.count(c,exact=True).count>0 for c in (COLLECTION,PUBLIC_COLLECTION))
+
+    def upsert_publication(self,document:PublicDocument):
+        with self._write_lock:
+            vector=list(self._embedding().passage_embed([document.text]))[0]
+            if len(vector)!=DIMENSION: raise ValueError("embedding dimension mismatch")
+            if not self.client.collection_exists(PUBLIC_COLLECTION):
+                self.client.create_collection(PUBLIC_COLLECTION,vectors_config=models.VectorParams(size=DIMENSION,distance=models.Distance.COSINE))
+            config=self.client.get_collection(PUBLIC_COLLECTION).config.params.vectors
+            if not isinstance(config,models.VectorParams) or config.size!=DIMENSION or config.distance!=models.Distance.COSINE: raise ValueError("publication collection incompatible")
+            point=models.PointStruct(id=str(uuid.uuid5(uuid.NAMESPACE_URL,"publication:"+document.id)),vector=vector.tolist(),payload={**document.model_dump(),"embedding_model":MODEL})
+            self.client.upsert(PUBLIC_COLLECTION,points=[point],wait=True)
+            return {"id":document.id,"version":document.version,"indexed":1,"collection":PUBLIC_COLLECTION,"embedding_model":MODEL}
+
+    def delete_publication(self,ident:str):
+        with self._write_lock:
+            if self.client.collection_exists(PUBLIC_COLLECTION):
+                self.client.delete(PUBLIC_COLLECTION,points_selector=models.PointIdsList(points=[str(uuid.uuid5(uuid.NAMESPACE_URL,"publication:"+ident))]),wait=True)
+            return {"id":ident,"deleted":True}
 
     def index(self):
         vectors=list(self._embedding().passage_embed([row["text"] for row in DEMO_KB]))
@@ -41,10 +67,10 @@ class QdrantRetrieval:
         self.client.upsert(COLLECTION,points=points,wait=True)
         return {"indexed":len(points),"collection":COLLECTION,"demo":True}
 
-    def search(self,message:str):
+    def search(self,message:str,publications=()):
         if not self.health(): return []
         vector=list(self._embedding().query_embed(message))[0]
-        results=self.client.query_points(COLLECTION,query=vector.tolist(),limit=3,with_payload=True).points
+        results=self.client.query_points(COLLECTION,query=vector.tolist(),limit=3,with_payload=True).points if self.client.collection_exists(COLLECTION) else []
         known={row["id"]:row for row in DEMO_KB}
         citations=[]
         for point in results:
@@ -52,4 +78,12 @@ class QdrantRetrieval:
             row=known.get(payload.get("id"))
             if row and all(payload.get(k)==v for k,v in row.items()) and payload.get("embedding_model")==MODEL and payload.get("kb_version")==1:
                 citations.append(Citation(**row,score=max(-1.0,min(1.0,float(point.score)))))
-        return citations
+        if publications and self.client.collection_exists(PUBLIC_COLLECTION):
+            allowed=models.Filter(must=[models.FieldCondition(key="id",match=models.MatchAny(any=[d.id for d in publications]))])
+            hits=self.client.query_points(PUBLIC_COLLECTION,query=vector.tolist(),query_filter=allowed,limit=3,with_payload=True).points
+            for hit in hits:
+                doc=verified_publication(hit.payload,publications)
+                if doc: citations.append(Citation(id=doc.id,title=doc.title,source=doc.source,text=doc.text,score=max(-1.0,min(1.0,float(hit.score)))))
+        unique={}
+        for citation in sorted(citations,key=lambda c:c.score,reverse=True): unique.setdefault(citation.id,citation)
+        return list(unique.values())[:3]
