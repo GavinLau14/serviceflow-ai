@@ -165,7 +165,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 检查并发版本更新；`LoginRateLimitTest` 验证分钟边界；`PasswordChangeIntegrationTest` 验证改密、并发和回滚；`KnowledgeInboxIntegrationTest` 与 `KnowledgeReviewConcurrencyTest` 验证知识权限、历史分页及双人审核防覆盖。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 101 项、Python 40 项（含真实 Embedding/Qdrant）、浏览器 35 项，详见 [SLA 风险工作台验证](docs/SLA_WORKBENCH_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
+`WorkflowIntegrationTest` 验证角色/团队/内部备注、状态流转与版本冲突；`ConcurrentUpdateTest` 检查并发版本更新；`LoginRateLimitTest` 验证分钟边界；`PasswordChangeIntegrationTest` 验证改密、并发和回滚；`KnowledgeInboxIntegrationTest` 与 `KnowledgeReviewConcurrencyTest` 验证知识权限、历史分页及双人审核防覆盖。无 H2 替代，无测试覆盖率宣称。最新本地验证为 Java 101 项、Python 40 项（含真实 Embedding/Qdrant）、浏览器 39 项，详见 [SLA 风险工作台验证](docs/SLA_WORKBENCH_RESULTS.md)。远程构建以 [GitHub Actions 实际运行](https://github.com/GavinLau14/serviceflow-ai/actions) 为准；历史报告中的“未推送”是当时状态。
 
 ## 演示截图
 

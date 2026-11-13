@@ -169,10 +169,10 @@ test("fake contract: persisted drafts require explicit confirmation and emit cre
   page,
 }) => {
   await setup(page);
-  await page.route("**/api/ai/runs", (route) =>
-    route.fulfill({ json: [draft, retrieval] }),
-  );
   let executions = 0;
+  await page.route("**/api/ai/runs", (route) =>
+    route.fulfill({ json: [executions ? {...draft,status:'COMPLETED',ticketId:ticket.id} : draft, retrieval] }),
+  );
   await page.route("**/api/ai/runs/11/execute", async (route) => {
     executions++;
     expect(route.request().method()).toBe("POST");
@@ -317,4 +317,40 @@ test("fake contract: human handoff requires product category and explicit consen
     page.getByRole("heading", { name: ticket.title, exact: true }),
   ).toBeVisible();
   expect(calls).toBe(1);
+});
+
+
+test("late pre-execution history cannot turn a completed ticket back into an executable draft",async({page})=>{
+ await setup(page);let completed=false,delay=false;let release!:()=>void,entered!:()=>void;
+ const gate=new Promise<void>(r=>release=r),requested=new Promise<void>(r=>entered=r);
+ await page.route('**/api/ai/runs',async route=>{const snapshot=completed?{...draft,status:'COMPLETED',ticketId:ticket.id}:draft;if(delay){entered();await gate;}await route.fulfill({json:[snapshot]});});
+ await page.route('**/api/ai/runs/11/execute',async route=>{completed=true;await route.fulfill({json:ticket});});
+ await openAssist(page);await page.getByRole('button').filter({hasText:'#11 ·'}).click();await page.getByText('我已核对草稿，确认创建售后工单',{exact:true}).click();
+ delay=true;await page.getByRole('button',{name:'刷新历史',exact:true}).click();await requested;
+ await page.getByRole('button',{name:'确认创建工单',exact:true}).click();await expect(page.getByRole('heading',{name:ticket.title,exact:true})).toBeVisible();
+ const response=page.waitForResponse(r=>r.url().endsWith('/api/ai/runs'));release();await response;delay=false;
+ await expect(page.locator('.assist-history button').filter({hasText:'刷新历史'})).not.toHaveClass(/is-loading/);
+ await expect(page.locator('.assist-result')).toContainText('已创建工单 #91');
+ await expect(page.locator('.assist-result').getByRole('button',{name:'确认创建工单',exact:true,includeHidden:true})).toHaveCount(0);
+ await openAssist(page);await expect(page.getByRole('region',{name:'助手结果'})).toContainText('已创建工单 #91');await expect(page.getByRole('button',{name:'确认创建工单',exact:true})).toHaveCount(0);
+});
+
+for(const missing of [false,true])test(`safe history ${missing?'omission':'redaction'} remains safe when ticket completion arrives later`,async({page})=>{
+ await setup(page);const ident='pub:2d21c5c2-19ac-41f7-a27b-66b03cfe4278';const publicDraft={...draft,answer:'不能重新出现的旧公开建议',citations:[{id:ident,title:'旧公开知识',source:'knowledge://serviceflow/publications/'+ident.slice(4)+'/v1',text:'不能重新出现的旧公开正文',score:.9}]};
+ let reads=0,releaseHistory!:()=>void,historyEntered!:()=>void,releaseExecute!:()=>void,executeEntered!:()=>void;
+ const historyGate=new Promise<void>(r=>releaseHistory=r),historyStarted=new Promise<void>(r=>historyEntered=r),executeGate=new Promise<void>(r=>releaseExecute=r),executeStarted=new Promise<void>(r=>executeEntered=r);
+ await page.route('**/api/ai/runs',async route=>{reads++;if(reads===1)return route.fulfill({json:[publicDraft]});if(reads===2){historyEntered();await historyGate;}return route.fulfill({json:missing?[]:[{...publicDraft,mode:'error',answer:'知识来源已撤回，请查看已创建的工单。',citations:[],proposal:null,status:'NO_ACTION'}]});});
+ await page.route('**/api/ai/runs/11/execute',async route=>{executeEntered();await executeGate;await route.fulfill({json:ticket});});
+ await openAssist(page);await page.getByRole('button').filter({hasText:'#11 ·'}).click();await page.getByText('我已核对草稿，确认创建售后工单',{exact:true}).click();await page.getByRole('button',{name:'刷新历史',exact:true}).click();await historyStarted;
+ await page.getByRole('button',{name:'确认创建工单',exact:true}).click();await executeStarted;releaseHistory();await expect(page.locator('.assist-history button').filter({hasText:'刷新历史'})).not.toHaveClass(/is-loading/);releaseExecute();
+ await expect(page.getByRole('heading',{name:ticket.title,exact:true})).toBeVisible();await expect(page.locator('.assist-result')).not.toContainText('不能重新出现');await openAssist(page);await expect(page.getByRole('region',{name:'助手结果'})).toContainText('已创建工单 #91');await expect(page.getByRole('region',{name:'助手结果'})).not.toContainText('不能重新出现');await expect(page.getByRole('button',{name:'确认创建工单',exact:true})).toHaveCount(0);
+});
+
+test('late public source preview cannot refill content after a history withdrawal',async({page})=>{
+ await setup(page);const uuid='2d21c5c2-19ac-41f7-a27b-66b03cfe4278',pub='pub:'+uuid,run={...retrieval,id:'preview-race',answer:'撤回前的公开建议',citations:[{id:pub,title:'旧公开来源',text:'不应回填的公开正文',source:'knowledge://serviceflow/publications/'+uuid+'/v1',score:.9}]};
+ let reads=0,releaseHistory!:()=>void,historyEntered!:()=>void,releaseSource!:()=>void,sourceEntered!:()=>void;
+ const hg=new Promise<void>(r=>releaseHistory=r),hs=new Promise<void>(r=>historyEntered=r),sg=new Promise<void>(r=>releaseSource=r),ss=new Promise<void>(r=>sourceEntered=r);
+ await page.route('**/api/ai/runs',async route=>{reads++;if(reads===1)return route.fulfill({json:[run]});historyEntered();await hg;return route.fulfill({json:[{...run,mode:'error',answer:'公开来源已撤回，请转人工处理。',citations:[],proposal:null}]});});
+ await page.route('**/api/knowledge/publications/'+uuid,async route=>{sourceEntered();await sg;await route.fulfill({json:{id:pub,version:1,title:run.citations[0].title,text:run.citations[0].text}});});
+ await openAssist(page);await page.getByRole('button').filter({hasText:'#preview-race ·'}).click();await page.getByText('旧公开来源',{exact:true}).click();await page.getByRole('button',{name:'刷新历史',exact:true}).click();await hs;await page.getByRole('button',{name:'查看公开来源版本',exact:true}).click();await ss;releaseHistory();await expect(page.getByRole('region',{name:'助手结果'})).toContainText('公开来源已撤回');releaseSource();await expect(page.getByRole('button',{name:'提交给人工',exact:true})).toBeEnabled();await expect(page.getByRole('region',{name:'助手结果'})).not.toContainText('不应回填');
 });

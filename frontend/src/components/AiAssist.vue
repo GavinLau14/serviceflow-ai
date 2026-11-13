@@ -10,8 +10,24 @@ const history = ref<AiRun[]>([]);
 const busy = ref(false), executing = ref(false), historyBusy = ref(false);
 const error = ref(""), historyError = ref(""), confirmed = ref(false), humanConfirmed=ref(false);
 const humanCategory=ref<""|"DEVICE"|"APPLIANCE">("");
+// A confirmed ticket link is monotonic. Refresh advice/citations even when an older
+// history snapshot lacks the link, so withdrawal redaction is never bypassed.
+const completedTickets=new Map<string,number>();
+function withCompletion(run:AiRun):AiRun {
+  if(run.ticketId!==null){completedTickets.set(run.id,run.ticketId);if(completedTickets.size>50)completedTickets.delete(completedTickets.keys().next().value!);}
+  const ticketId=completedTickets.get(run.id);
+  return ticketId===undefined?run:{...run,status:'COMPLETED',ticketId};
+}
+function completeRun(run:AiRun,ticketId:number){
+  const latest=current.value?.id===run.id?current.value:history.value.find(r=>r.id===run.id);
+  const safe=latest??{...run,answer:'工单已创建，请查看工单处理进展。',intent:'UNKNOWN',confidence:0,handoff:false,citations:[],proposal:null};
+  const completed=withCompletion({...safe,status:'COMPLETED',ticketId});
+  current.value=completed;
+  history.value=history.value.some(r=>r.id===run.id)?history.value.map(r=>r.id===run.id?completed:r):[completed,...history.value].slice(0,20);
+}
 const sourceBusy=ref(false),sourcePreview=ref<{title:string;text:string;version:number}|null>(null);
-watch([()=>current.value?.id,()=>current.value?.citations.map(c=>c.id).join(',')],()=>{sourcePreview.value=null;});
+let sourceGeneration=0;
+watch([()=>current.value?.id,()=>current.value?.citations.map(c=>c.id).join(',')],()=>{sourceGeneration++;sourcePreview.value=null;});
 let active = true;
 onUnmounted(() => { active = false; });
 const modeNames: Record<AiMode, string> = {
@@ -27,7 +43,7 @@ async function loadHistory() {
   historyBusy.value = true;
   historyError.value = "";
   try {
-    const runs = await api<AiRun[]>("/ai/runs");
+    const runs = (await api<AiRun[]>("/ai/runs")).map(withCompletion);
     if (active) {
       const refreshed = runs.find((run) => run.id === current.value?.id);
       if (refreshed) {
@@ -46,10 +62,12 @@ async function loadHistory() {
   }
 }
 async function viewPublicSource(id:string){
-  if(pending.value||!id.startsWith('pub:'))return;
+  if(pending.value||!id.startsWith('pub:')||!current.value?.citations.some(c=>c.id===id))return;
+  const runId=current.value.id,request=++sourceGeneration;
+  const valid=()=>active&&request===sourceGeneration&&current.value?.id===runId&&current.value.citations.some(c=>c.id===id);
   sourceBusy.value=true;sourcePreview.value=null;error.value='';
-  try{const value=await api<{title:string;text:string;version:number}>(`/knowledge/publications/${encodeURIComponent(id.slice(4))}`);if(active)sourcePreview.value=value;}
-  catch(e){if(active){error.value=e instanceof ApiError&&e.status===404?'该知识已撤回或尚未就绪，请重新咨询。':e instanceof Error?e.message:'来源暂不可用';
+  try{const value=await api<{title:string;text:string;version:number}>(`/knowledge/publications/${encodeURIComponent(id.slice(4))}`);if(valid())sourcePreview.value=value;}
+  catch(e){if(valid()){error.value=e instanceof ApiError&&e.status===404?'该知识已撤回或尚未就绪，请重新咨询。':e instanceof Error?e.message:'来源暂不可用';
     if(e instanceof ApiError&&e.status===404){current.value=null;confirmed.value=false;await loadHistory();}}}
   finally{if(active)sourceBusy.value=false;}
 }
@@ -58,12 +76,13 @@ watch(current,()=>{humanConfirmed.value=false;humanCategory.value="";});
 async function handoff(){
  if(pending.value||!humanConfirmed.value||!current.value||!humanCategory.value)return;
  executing.value=true;error.value="";
- try{const ticket=await api<Ticket>(`/ai/runs/${current.value.id}/handoff`,{confirmed:true,category:humanCategory.value});if(!active)return;model.value=false;emit("created",ticket);}
+ const run=current.value;
+ try{const ticket=await api<Ticket>(`/ai/runs/${run.id}/handoff`,{confirmed:true,category:humanCategory.value});if(!active)return;completeRun(run,ticket.id);model.value=false;emit("created",ticket);}
  catch(e){if(active)error.value=e instanceof Error?e.message:"转人工失败，请重试";}
  finally{if(active)executing.value=false;}
 }
 function select(run: AiRun) {
-  current.value = run;
+  current.value = withCompletion(run);
   confirmed.value = false;
   error.value = "";
 }
@@ -98,9 +117,7 @@ async function execute() {
   try {
     const ticket = await api<Ticket>(`/ai/runs/${run.id}/execute`, { confirmed: true });
     if (!active) return;
-    const completed: AiRun = { ...run, status: "COMPLETED", ticketId: ticket.id };
-    current.value = completed;
-    history.value = history.value.map((r) => r.id === run.id ? completed : r);
+    completeRun(run,ticket.id);
     confirmed.value = false;
     model.value = false;
     emit("created", ticket);
