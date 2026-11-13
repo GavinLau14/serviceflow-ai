@@ -1,4 +1,5 @@
 """Real multilingual embeddings only. Fixed bundled demo KB; no external document URLs."""
+import math
 import threading
 import uuid
 from qdrant_client import QdrantClient, models
@@ -49,6 +50,18 @@ class QdrantRetrieval:
             point=models.PointStruct(id=str(uuid.uuid5(uuid.NAMESPACE_URL,"publication:"+document.id)),vector=vector.tolist(),payload={**document.model_dump(),"embedding_model":MODEL})
             self.client.upsert(PUBLIC_COLLECTION,points=[point],wait=True)
             return {"id":document.id,"version":document.version,"indexed":1,"collection":PUBLIC_COLLECTION,"embedding_model":MODEL}
+
+    def inspect_publication(self,document:PublicDocument):
+        def result(state): return {"id":document.id,"version":document.version,"state":state}
+        if not self.client.collection_exists(PUBLIC_COLLECTION): return result("MISSING")
+        config=self.client.get_collection(PUBLIC_COLLECTION).config.params.vectors
+        if not isinstance(config,models.VectorParams) or config.size!=DIMENSION or config.distance!=models.Distance.COSINE: return result("INVALID")
+        points=self.client.retrieve(PUBLIC_COLLECTION,ids=[str(uuid.uuid5(uuid.NAMESPACE_URL,"publication:"+document.id))],with_payload=True,with_vectors=True)
+        if not points: return result("MISSING")
+        point=points[0]
+        vector=point.vector
+        if verified_publication(point.payload,[document]) is None or not isinstance(vector,list) or len(vector)!=DIMENSION or not all(isinstance(v,(int,float)) and math.isfinite(v) for v in vector): return result("INVALID")
+        return result("CURRENT")
 
     def delete_publication(self,ident:str):
         with self._write_lock:

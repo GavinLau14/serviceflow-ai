@@ -4,6 +4,7 @@ import { ElAlert, ElButton, ElCheckbox, ElInput, ElMessageBox } from "element-pl
 import { api, type User } from "../api";
 interface Publication { id:string; version:number; title:string; text:string; status:string; indexState:string; cleanupState:string }
 interface History { latest:Publication|null; history:Publication[] }
+const emit=defineEmits<{changed:[]}>();
 const props=defineProps<{knowledgeId:number;user:User}>();
 const admin=computed(()=>props.user.role==='ADMIN');
 const staff=computed(()=>props.user.role!=='CUSTOMER');
@@ -30,7 +31,7 @@ async function publish(){
   if(!ready.value)return;
   const current=generation,write=++operation;busy.value=true;error.value='';
   try{await api(`/knowledge/${props.knowledgeId}/publication`,{expectedVersion:data.value.latest?.version??0,title:title.value.trim(),text:text.value.trim(),redacted:true,confirmed:true});
-    if(current===generation){redacted.value=confirmed.value=false;await load();}}
+    if(current===generation){redacted.value=confirmed.value=false;emit("changed");await load();}}
   catch(e){if(current===generation)error.value=e instanceof Error?e.message:'发布失败，请刷新后重试';}
   finally{if(write===operation)busy.value=false;}
 }
@@ -43,7 +44,7 @@ async function action(kind:'sync'|'withdraw'){
     }
     if(current!==generation)return;
     await api(`/knowledge/${props.knowledgeId}/publication/${kind}`,{publicationId:latest.id,confirmed:true});
-    if(current===generation)await load();
+    if(current===generation){emit("changed");await load();}
   }catch(e){if(current===generation)error.value=e instanceof Error?e.message:'操作未确认，请刷新后重试';}
   finally{if(write===operation)busy.value=false;}
 }

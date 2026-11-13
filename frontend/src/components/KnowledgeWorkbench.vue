@@ -3,6 +3,9 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { ElAlert, ElButton, ElCheckbox, ElInput, ElPagination, ElSkeleton, ElTag } from "element-plus";
 import { api, time, type User } from "../api";
 import PublicationPanel from "./PublicationPanel.vue";
+import IndexOperations from "./IndexOperations.vue";
+const indexOperations=ref<InstanceType<typeof IndexOperations>|null>(null);
+const publicationRevision=ref(0);
 
 type State = "DRAFT" | "PUBLISHED" | "REJECTED";
 interface Knowledge {
@@ -112,6 +115,7 @@ async function review(approved: boolean) {
     <el-alert v-if="!staff" title="知识记录仅向服务团队开放" type="info" :closable="false" />
     <template v-else>
       <header class="kb-heading"><div><p class="kb-eyebrow">TEAM KNOWLEDGE</p><h1>知识审核</h1><p class="kb-description">从已解决的工单整理经验，审核内容与来源，保留每一次处理结论。</p></div><el-button :loading="loading" :disabled="busy !== null" @click="refresh">刷新</el-button></header>
+      <IndexOperations ref="indexOperations" :user="user" @changed="publicationRevision++" />
       <div class="kb-toolbar"><div class="kb-filters" role="group" aria-label="知识状态筛选"><el-button v-for="option in filters" :key="option.value" :aria-pressed="status === option.value" :type="status === option.value ? 'primary' : 'default'" :disabled="loading || busy !== null" @click="filter(option.value)">{{ option.label }}</el-button></div><span v-if="loaded" class="kb-count" aria-live="polite" title="按当前数据权限统计，不受检索关键词和状态筛选影响">可见范围内 {{ pending }} 条待审核</span></div>
       <form class="kb-search" @submit.prevent="search"><el-input v-model="searchInput" aria-label="检索知识" placeholder="标题或内容，回车检索" maxlength="100" clearable :disabled="loading || busy !== null" /><el-button native-type="submit" :disabled="loading || busy !== null">检索</el-button></form>
       <p class="kb-boundary">审核通过后保存在知识库中，不会自动加入 AI 检索索引。</p>
@@ -133,7 +137,7 @@ async function review(approved: boolean) {
           </form>
           <div v-else-if="selected.status !== 'DRAFT'" class="kb-conclusion"><h3>审核记录</h3><p>{{ selected.reviewerName || (selected.reviewerId ? '账号 #' + selected.reviewerId : '未记录审核人') }}<template v-if="selected.reviewedAt"> · {{ time(selected.reviewedAt) }}</template></p><p class="preserve-text">{{ selected.reviewNote || (selected.status === 'REJECTED' ? '此条记录未保存退回理由。' : '未填写审核意见。') }}</p><p v-if="selected.status === 'REJECTED'" class="kb-waiting">修正内容后，可打开来源工单提交新草稿，本条审核记录会保留。</p></div>
           <p v-else class="kb-waiting">草稿已提交，等待主管审核。</p>
-          <PublicationPanel v-if="selected.status === 'PUBLISHED'" :knowledge-id="selected.id" :user="user" />
+          <PublicationPanel :key="publicationRevision" @changed="indexOperations?.refresh()" v-if="selected.status === 'PUBLISHED'" :knowledge-id="selected.id" :user="user" />
         </section>
       </div>
       <nav v-if="total && !error && !loading" class="kb-pagination" aria-label="知识分页"><span>共 {{ total }} 条记录</span><el-pagination :current-page="page" :page-size="20" :total="total" :pager-count="5" layout="prev, pager, next" prev-text="上一页" next-text="下一页" :disabled="busy !== null" @current-change="changePage" /></nav>

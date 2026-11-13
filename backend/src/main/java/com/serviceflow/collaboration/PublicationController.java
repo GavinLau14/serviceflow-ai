@@ -17,5 +17,7 @@ public class PublicationController {
   @PostMapping("/{id}/publication") public PublicationService.Publication publish(@AuthenticationPrincipal User u,@PathVariable long id,@Valid @RequestBody Publish req){return service.publish(u,id,req);}
   @PostMapping("/{id}/publication/sync") public PublicationService.Publication sync(@AuthenticationPrincipal User u,@PathVariable long id,@Valid @RequestBody Action req){return service.retry(u,id,req);}
   @PostMapping("/{id}/publication/withdraw") public PublicationService.Publication withdraw(@AuthenticationPrincipal User u,@PathVariable long id,@Valid @RequestBody Action req){return service.withdraw(u,id,req);}
+  @PostMapping("/{id}/publication/check") public PublicationService.Publication check(@AuthenticationPrincipal User u,@PathVariable long id,@Valid @RequestBody Action req){return service.inspect(u,id,req);}
+  @PostMapping("/{id}/publication/repair") public PublicationService.Publication repair(@AuthenticationPrincipal User u,@PathVariable long id,@Valid @RequestBody Action req){return service.repair(u,id,req);}
   @GetMapping("/publications/{id}") public PublicationService.Document publicSource(@PathVariable String id){return service.publicSource(id);}
 }

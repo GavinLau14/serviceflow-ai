@@ -1,0 +1,4 @@
+ Container serviceflow-ai-service-run-2ff0564bbb1d Creating
+ Container serviceflow-ai-service-run-2ff0564bbb1d Created
+........................................                                 [100%]
+40 passed in 2.00s

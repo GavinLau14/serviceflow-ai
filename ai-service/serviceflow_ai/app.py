@@ -54,6 +54,11 @@ def create_app(settings:Settings|None=None,retrieval=None)->FastAPI:
         try: return retrieval.upsert_publication(request.document)
         except Exception: raise HTTPException(503,"Publication index not confirmed") from None
 
+    @app.post("/publications/inspect",dependencies=[Depends(authenticated)])
+    def inspect(request:PublicationUpsert):
+        try: return retrieval.inspect_publication(request.document)
+        except Exception: raise HTTPException(503,"Publication inspection unavailable") from None
+
     @app.post("/publications/delete",dependencies=[Depends(authenticated)])
     def delete(request:PublicationDelete):
         try: return retrieval.delete_publication(request.id)

@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "knowledgeId": 8,
+  "version": 2,
+  "samePublicationId": true,
+  "checks": [
+    "real Qdrant point deleted",
+    "inspection reports MISSING and blocks public source",
+    "customer assist excludes missing source",
+    "UI cancelled repair causes no repair",
+    "UI confirmed repair restores same version",
+    "inspection CURRENT and customer retrieval restored",
+    "390px no horizontal overflow"
+  ],
+  "llmQuality": "NOT_RUN: no model key"
+}

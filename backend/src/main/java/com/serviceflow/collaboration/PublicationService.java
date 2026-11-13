@@ -16,13 +16,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class PublicationService {
   public record Publication(String id,long knowledgeId,int version,String title,String text,String status,
-      String indexState,String cleanupState,long publishedBy,LocalDateTime publishedAt,Long withdrawnBy,LocalDateTime withdrawnAt) {}
+      String indexState,String cleanupState,long publishedBy,LocalDateTime publishedAt,Long withdrawnBy,LocalDateTime withdrawnAt,String checkState,LocalDateTime checkedAt) {}
   public record Document(String id,int version,String title,String source,String text) {}
   public record History(Publication latest,List<Publication> history) {}
   private record Authorized(Publication publication,String replacedId) {}
   private final JdbcTemplate db;private final KnowledgeMapper knowledge;private final OperationsService operations;
   private final AiGateway gateway;private final ObjectMapper json;private final TransactionTemplate tx;
-  private static final RowMapper<Publication> ROW=(r,n)->new Publication(r.getString("id"),r.getLong("knowledge_id"),r.getInt("version"),r.getString("public_title"),r.getString("public_text"),r.getString("status"),r.getString("index_state"),r.getString("cleanup_state"),r.getLong("published_by"),r.getObject("published_at",LocalDateTime.class),r.getObject("withdrawn_by",Long.class),r.getObject("withdrawn_at",LocalDateTime.class));
+  private static final RowMapper<Publication> ROW=(r,n)->new Publication(r.getString("id"),r.getLong("knowledge_id"),r.getInt("version"),r.getString("public_title"),r.getString("public_text"),r.getString("status"),r.getString("index_state"),r.getString("cleanup_state"),r.getLong("published_by"),r.getObject("published_at",LocalDateTime.class),r.getObject("withdrawn_by",Long.class),r.getObject("withdrawn_at",LocalDateTime.class),r.getString("check_state"),r.getObject("checked_at",LocalDateTime.class));
   public PublicationService(JdbcTemplate db,KnowledgeMapper knowledge,OperationsService operations,AiGateway gateway,ObjectMapper json,PlatformTransactionManager manager){
     this.db=db;this.knowledge=knowledge;this.operations=operations;this.gateway=gateway;this.json=json;
     tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -75,15 +75,54 @@ public class PublicationService {
     });
     cleanup(req.publicationId());return row(req.publicationId(),false);
   }
-  private Publication index(String id){
-    Publication p=row(id,false);if(p==null||!p.status().equals("ACTIVE")||p.indexState().equals("SYNCED"))return p;
-    boolean ok=false;
+  private record Attempt(Publication publication,long revision) {}
+  /** The revision fences late network replies; it never grants authorization. */
+  private Attempt begin(String id,boolean index,boolean force){
+    return tx.execute(s->{
+      int count=db.update("UPDATE knowledge_publications SET operation_revision=operation_revision+1,check_state='UNKNOWN',checked_at=NULL"+(index?",index_state='PENDING'":"")+" WHERE id=? AND status='ACTIVE'"+(index&&!force?" AND index_state<>'SYNCED'":""),id);
+      if(count==0)return null;
+      return new Attempt(row(id,false),db.queryForObject("SELECT operation_revision FROM knowledge_publications WHERE id=?",Long.class,id));
+    });
+  }
+  private Publication index(String id){return index(id,false);}
+  private Publication index(String id,boolean force){
+    Attempt attempt=begin(id,true,force);if(attempt==null)return row(id,false);
+    return writeIndex(attempt);
+  }
+  private Publication writeIndex(Attempt attempt){
+    Publication p=attempt.publication();String id=p.id();boolean ok=false;
     try{JsonNode ack=json.readTree(gateway.call("/publications/upsert",Map.of("document",document(p))));
       ok=ack.path("id").asText().equals("pub:"+id)&&ack.path("version").isIntegralNumber()&&ack.path("version").asInt()==p.version()&&ack.path("indexed").isIntegralNumber()&&ack.path("indexed").asInt()==1;
     }catch(Exception e){if(e instanceof InterruptedException)Thread.currentThread().interrupt();}
     boolean synced=ok;
-    int changed=tx.execute(s->db.update("UPDATE knowledge_publications SET index_state=? WHERE id=? AND status='ACTIVE'"+(synced?"":" AND index_state<>'SYNCED'"),synced?"SYNCED":"FAILED",id));
+    int changed=tx.execute(s->db.update("UPDATE knowledge_publications SET index_state=? WHERE id=? AND status='ACTIVE' AND operation_revision=?",synced?"SYNCED":"FAILED",id,attempt.revision()));
     if(changed==0)cleanup(id);return row(id,false);
+  }
+  private Publication target(User u,long id,PublicationController.Action req){
+    admin(u);if(!req.confirmed())throw ApiException.bad("请确认知识索引操作");visible(u,id);
+    Publication p=row(req.publicationId(),false);if(p==null||p.knowledgeId()!=id)throw ApiException.missing();
+    if(!p.status().equals("ACTIVE"))throw new ApiException(409,"PUBLICATION_WITHDRAWN","已撤回的版本不能核验或恢复索引");return p;
+  }
+  public Publication repair(User u,long id,PublicationController.Action req){
+    Publication p=target(u,id,req);
+    Attempt attempt=tx.execute(s->{
+      Knowledge k=visible(u,id);var ticket=knowledge.lockTicket(k.ticketId);
+      Attempt reserved=begin(p.id(),true,true);
+      if(reserved==null)throw new ApiException(409,"PUBLICATION_WITHDRAWN","已撤回的版本不能恢复索引");
+      operations.recordStaff(ticket,u.id,"KNOWLEDGE_INDEX_REPAIR","管理员确认修复已有公开版本的索引，结果以索引状态为准");
+      return reserved;
+    });
+    return writeIndex(attempt);
+  }
+  public Publication inspect(User u,long id,PublicationController.Action req){
+    Publication p=target(u,id,req);Attempt attempt=begin(p.id(),false,true);if(attempt==null)return row(p.id(),false);
+    String state="UNAVAILABLE";
+    try{JsonNode ack=json.readTree(gateway.call("/publications/inspect",Map.of("document",document(p))));
+      if(ack.path("id").asText().equals("pub:"+p.id())&&ack.path("version").isIntegralNumber()&&ack.path("version").asInt()==p.version()&&Set.of("CURRENT","MISSING","INVALID").contains(ack.path("state").asText()))state=ack.path("state").asText();
+    }catch(Exception e){if(e instanceof InterruptedException)Thread.currentThread().interrupt();}
+    String observed=state;
+    tx.executeWithoutResult(s->db.update("UPDATE knowledge_publications SET check_state=?,checked_at=UTC_TIMESTAMP(6),index_state=CASE WHEN ?='CURRENT' THEN 'SYNCED' WHEN ? IN ('MISSING','INVALID') THEN 'FAILED' ELSE index_state END WHERE id=? AND status='ACTIVE' AND operation_revision=?",observed,observed,observed,p.id(),attempt.revision()));
+    return row(p.id(),false);
   }
   private void cleanup(String id){
     Publication p=row(id,false);if(p==null||!p.status().equals("WITHDRAWN"))return;
