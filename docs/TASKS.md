@@ -40,3 +40,5 @@ M4已完成本地工程交付；远端真实LLM验收仍按M2未完成项保留�
 上方M4的远程CI表述是历史交付时状态；首次GitHub发布与当前运行情况见 GITHUB_WORKFLOW.md。
 
 - [x] v0.7 受控知识发布：独立公开摘要、管理员双确认、真实向量索引、失败重试、不可变版本与撤回、旧引用及待执行提案校验；见 KNOWLEDGE_PUBLICATION_RESULTS.md。
+
+- [x] v0.8 索引核验与恢复：真实点/schema/payload/向量核验、同版本显式修复、操作代次防迟到覆盖、修复审计与管理员状态面板；见 INDEX_OPERATIONS_RESULTS.md。

@@ -14,7 +14,9 @@ def test_real_publication_retrieval_allowlist_tamper_and_delete(monkeypatch):
     ident = "pub:" + str(uuid.uuid4())
     doc = PublicDocument(id=ident, version=1, title="光栅零点漂移记录", source=f"knowledge://serviceflow/publications/{ident[4:]}/v1", text="【虚构演示】光栅零点漂移需要记录校准前后的观测值，停止使用异常测量结果，交由专业人员核验。")
     try:
+        assert retrieval.inspect_publication(doc)["state"] == "MISSING"
         ack = retrieval.upsert_publication(doc)
+        assert retrieval.inspect_publication(doc)["state"] == "CURRENT"
         assert ack["indexed"] == 1
         hits = retrieval.search("光栅零点漂移需要记录校准前后的观测值", [doc])
         assert any(c.id == ident and c.text == doc.text for c in hits)
@@ -23,9 +25,12 @@ def test_real_publication_retrieval_allowlist_tamper_and_delete(monkeypatch):
         assert response.mode == "retrieval_only" and response.proposal is None
         point = str(uuid.uuid5(uuid.NAMESPACE_URL, "publication:" + ident))
         retrieval.client.set_payload(collection, payload={"text": "不可信的篡改内容"}, points=[point], wait=True)
+        assert retrieval.inspect_publication(doc)["state"] == "INVALID"
         assert all(c.id != ident for c in retrieval.search("光栅零点漂移", [doc]))
         retrieval.upsert_publication(doc)
+        assert retrieval.inspect_publication(doc)["state"] == "CURRENT"
         assert retrieval.delete_publication(ident)["deleted"]
+        assert retrieval.inspect_publication(doc)["state"] == "MISSING"
         assert all(c.id != ident for c in retrieval.search("光栅零点漂移", [doc]))
     finally:
         if retrieval.client.collection_exists(collection): retrieval.client.delete_collection(collection)

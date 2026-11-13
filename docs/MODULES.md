@@ -11,6 +11,7 @@ Java 是业务权限和写操作的唯一入口，Python 负责推理与受约�
 | 通知收件箱 | OperationsController / OperationsService、[通知界面](../frontend/src/components/OperationsView.vue) | NotificationInboxIntegrationTest、operations-contract.spec.ts |
 | 知识整理/审核 | [collaboration](../backend/src/main/java/com/serviceflow/collaboration/)、[KnowledgeWorkbench](../frontend/src/components/KnowledgeWorkbench.vue) | CollaborationIntegrationTest、KnowledgeInboxIntegrationTest、KnowledgeReviewConcurrencyTest、knowledge-contract.spec.ts |
 | 受控知识发布/撤回 | PublicationController / PublicationService、PublicationPanel、Python retrieval | KnowledgePublicationIntegrationTest、test_publications / test_real_publication、publication-contract.spec.ts |
+| 索引运营/恢复 | PublicationIndexController / PublicationIndexOperations、PublicationService、IndexOperations.vue、Python inspect_publication | KnowledgePublicationIntegrationTest、test_publications / test_real_publication、index-operations-contract.spec.ts |
 | 客服工作台 | [App.vue](../frontend/src/App.vue)、[TicketDetail.vue](../frontend/src/components/TicketDetail.vue) | inbox-redesign.spec.ts、workflow.spec.ts |
 | 部署/验证 | [Compose](../compose.yaml)、[infra](../infra/)、[scripts](../scripts/)、[GitHub Actions](../.github/workflows/ci.yml) | 容器 smoke、重启持久化、故障回退 |
 

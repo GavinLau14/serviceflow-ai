@@ -21,3 +21,5 @@ Python：仅内部 loopback 18082，`X-Service-Token` 验证 /assist 与 /index�
 ## v0.7 公开知识白名单
 
 Java 调用 Python `/assist` 时可附加 publications（最多50个有效公开快照）；无白名单不检索公开集合。内部服务身份保护 `/publications/upsert`（document）与 `/publications/delete`（id），浏览器不能直接调用。Qdrant 独立集合使用真实 MiniLM 384维 cosine，payload 必须与请求快照及模型身份一致。Java 在回答入库、历史读取和旧草稿执行时再校验当前授权；撤回来源令整条旧回答降级，待执行草稿返回409 KNOWLEDGE_WITHDRAWN。公开来源 URI 为 knowledge://serviceflow/publications/UUID/vN。
+
+内部 POST `/publications/inspect`：与upsert相同的严格 `{document}`，受服务身份保护，不加载embedding。返回 `{id,version,state}`，state为CURRENT/MISSING/INVALID；网络异常503，不泄露陌生payload。Java另记录UNAVAILABLE，不能将其当作缺失或健康。核验结构不等于语义质量评测。

@@ -46,3 +46,44 @@ def test_qdrant_payload_needs_exact_current_document_and_embedding_identity():
     assert verified_publication(payload, []) is None
     for field, value in [("text", "伪造政策"), ("title", "伪造标题"), ("version", 2), ("source", "demo://fake"), ("embedding_model", "different-model")]:
         assert verified_publication(dict(payload, **{field: value}), [doc]) is None
+
+def test_inspection_is_authenticated_strict_and_does_not_leak_upstream_errors():
+    retrieval = Retrieval()
+    retrieval.inspect_publication = lambda doc: {"id": doc.id, "version": doc.version, "state": "CURRENT"}
+    client = TestClient(create_app(Settings(service_token="test-token"), retrieval))
+    headers = {"X-Service-Token": "test-token"}
+    assert client.post('/publications/inspect', json={"document": DOC}).status_code == 401
+    assert client.post('/publications/inspect', json={"document": DOC}, headers=headers).json() == {"id": ID, "version": 1, "state": "CURRENT"}
+    assert client.post('/publications/inspect', json={"document": dict(DOC, private="secret")}, headers=headers).status_code == 422
+    def fail(doc): raise RuntimeError('private upstream credential should never escape')
+    retrieval.inspect_publication = fail
+    response = client.post('/publications/inspect', json={"document": DOC}, headers=headers)
+    assert response.status_code == 503 and 'private upstream' not in response.text
+
+@pytest.mark.parametrize('vector', [[], [0.0]*383, [float('nan')]*384, [float('inf')]*384])
+def test_inspection_rejects_malformed_vectors_without_loading_embedding(vector):
+    from types import SimpleNamespace as NS
+    from qdrant_client import models
+    from serviceflow_ai.retrieval import QdrantRetrieval
+    doc = PublicDocument.model_validate(DOC)
+    retrieval = QdrantRetrieval.__new__(QdrantRetrieval)
+    config = models.VectorParams(size=384, distance=models.Distance.COSINE)
+    class Client:
+        def collection_exists(self, name): return True
+        def get_collection(self, name): return NS(config=NS(params=NS(vectors=config)))
+        def retrieve(self, *args, **kwargs): return [NS(payload=dict(DOC, embedding_model=MODEL), vector=vector)]
+    retrieval.client = Client()
+    retrieval._embedding = lambda: pytest.fail('inspection must not load embedding')
+    assert retrieval.inspect_publication(doc) == {'id': ID, 'version': 1, 'state': 'INVALID'}
+
+def test_inspection_rejects_incompatible_collection_before_reading_points():
+    from types import SimpleNamespace as NS
+    from qdrant_client import models
+    from serviceflow_ai.retrieval import QdrantRetrieval
+    class Client:
+        def collection_exists(self, name): return True
+        def get_collection(self, name): return NS(config=NS(params=NS(vectors=models.VectorParams(size=128, distance=models.Distance.DOT))))
+        def retrieve(self, *args, **kwargs): pytest.fail('incompatible schema must not read payload')
+    retrieval = QdrantRetrieval.__new__(QdrantRetrieval)
+    retrieval.client = Client()
+    assert retrieval.inspect_publication(PublicDocument.model_validate(DOC))['state'] == 'INVALID'

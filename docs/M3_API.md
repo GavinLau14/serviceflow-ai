@@ -26,3 +26,9 @@ POST `/api/knowledge/{id}/publication`：`{expectedVersion:0,title:"公开标题
 POST `/api/knowledge/{id}/publication/sync` 与 `/withdraw`：`{publicationId:"UUID",confirmed:true}`。重试不新增版本；撤回绑定精确UUID，重复撤回旧版本不影响新版。撤回授权先提交，清理失败仍禁止引用。
 
 GET `/api/knowledge/publications/{UUID}`：全部已登录用户可读 ACTIVE+SYNCED 快照，仅 id（pub:UUID）、version、title、source、text；撤回或未同步404，不暴露原工单/知识/员工身份。原知识接口仍执行员工范围权限。
+
+## v0.8 索引运营（仅管理员）
+
+GET `/api/knowledge/index-operations?page=1&size=20&problemsOnly=false`：items/total/page/size/summary。页码1至100000，每页1至50。summary 为 active/synced/pending/failed/cleanupPending，均基于当前数据库状态；SYNCED 只是最近确认。问题筛选包含 ACTIVE 的未同步或核验服务不可达，以及 WITHDRAWN 的待清理记录。汇总不受筛选影响。
+
+POST `/api/knowledge/{id}/publication/check`、`/repair`：`{publicationId:"UUID",confirmed:true}`。核验只读真实向量并记录 CURRENT/MISSING/INVALID/UNAVAILABLE 与 checkedAt，缺失/不符会将 indexState 变为 FAILED；不可达保留上次索引状态而明确标记不可达。修复重建相同授权版本，期间 PENDING，并记录 KNOWLEDGE_INDEX_REPAIR 申请审计；撤回版本409。Publication 元数据新增 checkState/checkedAt。旧回执按 operation_revision 失效，不保证跨存储原子性。
