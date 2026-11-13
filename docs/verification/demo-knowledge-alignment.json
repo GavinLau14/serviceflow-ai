@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "knowledgeId": 8,
+  "activeVersion": 3,
+  "publicTitle": "【演示】USB-C扩展坞供电状态记录",
+  "mode": "retrieval_only",
+  "checks": [
+    "public summary matches reviewed USB-C source topic",
+    "new immutable version indexed with real embedding",
+    "previous version source404",
+    "real customer query cites aligned public snapshot",
+    "public endpoint contains only five public fields"
+  ],
+  "llmQuality": "NOT_RUN: no model key"
+}

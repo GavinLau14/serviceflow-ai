@@ -14,9 +14,16 @@ main 保留当前可演示的集成版本；新功能从最新 main 创建 `code
 | M2 AI 与检索预览 | codex/m2-ai | v0.2.0-alpha.1 | 7d3ebc6 |
 | M3 协作运营 | codex/m3-collaboration | v0.3.0 | c7b06eb |
 | M4 容器交付 | codex/m4-delivery | v0.4.0 | e67ff4d |
-| 后续完善 | codex/frontend-redesign、codex/llm-acceptance、codex/notification-inbox | v0.4.1 | 见 CHANGELOG |
+| 工作台与通知 | codex/frontend-redesign、codex/llm-acceptance、codex/notification-inbox | v0.4.1 | d80dd40 |
+| 账号安全 | codex/account-password | v0.5.0 | ece52c0 |
+| 知识审核 | codex/knowledge-review-workbench | v0.6.0 | 524a383 |
+| 知识公开/撤回 | codex/knowledge-publication | v0.7.0 | 93cb6ed |
+| 索引核验/恢复 | codex/knowledge-index-operations | v0.8.0 | 1edc344 |
+| SLA风险与并发修复 | codex/sla-risk-workbench | v0.9.0 | 7c34f39 |
 
-历史快照分支和标签在首次 GitHub 发布时根据已有提交建立，原始提交时间、作者、内容保持不变；没有补造历史 PR 或声称它们曾在 GitHub 完成评审。标签是固定快照，后续不移动或覆盖。
+M1–v0.4.1历史快照分支和标签在首次 GitHub 发布时根据已有提交建立，原始提交时间、作者、内容保持不变；没有补造历史 PR 或声称它们曾在 GitHub 完成评审。标签是固定快照，后续不移动或覆盖。v0.5起使用功能分支PR，等待PR和main的verify、ai-contracts、container-smoke三项通过再发布；表内提交为对应标签指向的版本提交。
+
+v0.8 [PR #4](https://github.com/GavinLau14/serviceflow-ai/pull/4) / [main CI](https://github.com/GavinLau14/serviceflow-ai/actions/runs/43381765305)；v0.9 [PR #5](https://github.com/GavinLau14/serviceflow-ai/pull/5) / [main CI](https://github.com/GavinLau14/serviceflow-ai/actions/runs/43387199074)。v0.9首次PR验证暴露客户端回包竞态，修复并补确定性测试后通过，历史失败运行保留。
 
 ## 发布要求
 
