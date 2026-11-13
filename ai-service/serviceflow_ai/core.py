@@ -2,10 +2,11 @@
 import json
 from pathlib import Path
 from typing import Literal, TypedDict, Any
+from uuid import UUID
 
 import httpx
 from langgraph.graph import StateGraph, START, END
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -21,6 +22,29 @@ class Settings(BaseSettings):
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+
+class PublicDocument(StrictModel):
+    id: str
+    version: int = Field(ge=1)
+    title: str = Field(min_length=1,max_length=160)
+    source: str
+    text: str = Field(min_length=1,max_length=1500)
+    @model_validator(mode="after")
+    def canonical_source(self):
+        if not self.id.startswith("pub:") or str(UUID(self.id[4:])) != self.id[4:]:
+            raise ValueError("invalid publication identity")
+        if self.source != f"knowledge://serviceflow/publications/{self.id[4:]}/v{self.version}":
+            raise ValueError("source must bind publication version")
+        if not self.title.strip() or not self.text.strip(): raise ValueError("blank public document")
+        return self
+
+class PublicationDelete(StrictModel):
+    id: str
+    @field_validator("id")
+    @classmethod
+    def canonical_id(cls,value):
+        if not value.startswith("pub:") or str(UUID(value[4:])) != value[4:]: raise ValueError("invalid publication identity")
+        return value
 
 class Citation(StrictModel):
     id: str = Field(min_length=1,max_length=100)
@@ -61,6 +85,7 @@ class State(TypedDict,total=False):
     chunks: list[Citation]
     raw: dict[str,Any]
     response: AssistResponse
+    publications: list[PublicDocument]
 
 class Assistant:
     def __init__(self,retrieval,provider,min_score=.45):
@@ -77,15 +102,16 @@ class Assistant:
         graph.add_edge("validate",END)
         self.graph=graph.compile()
 
-    def assist(self,message: str)->AssistResponse:
+    def assist(self,message: str,publications: list[PublicDocument]|None=None)->AssistResponse:
         try:
-            return self.graph.invoke({"message":message})["response"]
+            return self.graph.invoke({"message":message,"publications":publications or []})["response"]
         except Exception:
             # Upstream exception strings can contain credentials/URLs: never return them.
             return AssistResponse(mode="error",answer="AI 服务暂不可用，请转人工处理；尚未创建工单。")
 
     def _retrieve(self,state:State):
-        return {"chunks":[c for c in self.retrieval.search(state["message"]) if c.score>=self.min_score][:3]}
+        chunks=self.retrieval.search(state["message"],state["publications"]) if state["publications"] else self.retrieval.search(state["message"])
+        return {"chunks":[c for c in chunks if c.score>=self.min_score][:3]}
 
     def _decide(self,state:State):
         chunks=state["chunks"]

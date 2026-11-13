@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { ElAlert, ElButton, ElCheckbox, ElInput, ElPagination, ElSkeleton, ElTag } from "element-plus";
 import { api, time, type User } from "../api";
+import PublicationPanel from "./PublicationPanel.vue";
 
 type State = "DRAFT" | "PUBLISHED" | "REJECTED";
 interface Knowledge {
@@ -132,6 +133,7 @@ async function review(approved: boolean) {
           </form>
           <div v-else-if="selected.status !== 'DRAFT'" class="kb-conclusion"><h3>审核记录</h3><p>{{ selected.reviewerName || (selected.reviewerId ? '账号 #' + selected.reviewerId : '未记录审核人') }}<template v-if="selected.reviewedAt"> · {{ time(selected.reviewedAt) }}</template></p><p class="preserve-text">{{ selected.reviewNote || (selected.status === 'REJECTED' ? '此条记录未保存退回理由。' : '未填写审核意见。') }}</p><p v-if="selected.status === 'REJECTED'" class="kb-waiting">修正内容后，可打开来源工单提交新草稿，本条审核记录会保留。</p></div>
           <p v-else class="kb-waiting">草稿已提交，等待主管审核。</p>
+          <PublicationPanel v-if="selected.status === 'PUBLISHED'" :knowledge-id="selected.id" :user="user" />
         </section>
       </div>
       <nav v-if="total && !error && !loading" class="kb-pagination" aria-label="知识分页"><span>共 {{ total }} 条记录</span><el-pagination :current-page="page" :page-size="20" :total="total" :pager-count="5" layout="prev, pager, next" prev-text="上一页" next-text="下一页" :disabled="busy !== null" @current-change="changePage" /></nav>

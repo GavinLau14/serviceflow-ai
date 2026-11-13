@@ -16,3 +16,13 @@
 通知：业务变更、审计和outbox同事务，定时/显式扫描以唯一outbox_id投递站内通知；SKIP LOCKED+唯一约束避免重复。只发送固定元数据，不把内部备注、解决方案或知识正文复制到通知。没有邮件/短信渠道。
 
 配置：SERVICEFLOW_AUTO_ASSIGN（默认true）、SERVICEFLOW_WORKFLOW_SCAN_ENABLED（默认true），其余app.workflows参数见application.yml。测试关闭默认自动分派/定时扫描，由专门测试显式开启。系统时钟UTC，可注入Clock进行时间测试。
+
+## v0.7 公开知识发布（管理员）
+
+所有接口需 Bearer 会话。GET `/api/knowledge/{id}/publication` 返回 latest/history（最多20版本），沿用员工原工单范围；客户403。
+
+POST `/api/knowledge/{id}/publication`：`{expectedVersion:0,title:"公开标题",text:"人工脱敏摘要",redacted:true,confirmed:true}`。仅 ADMIN，原知识必须 PUBLISHED。标题160/正文1500字符，版本过期409，上限50 ACTIVE。相同内容和版本重试幂等。返回真实 status/indexState/cleanupState；FAILED 不可引用。
+
+POST `/api/knowledge/{id}/publication/sync` 与 `/withdraw`：`{publicationId:"UUID",confirmed:true}`。重试不新增版本；撤回绑定精确UUID，重复撤回旧版本不影响新版。撤回授权先提交，清理失败仍禁止引用。
+
+GET `/api/knowledge/publications/{UUID}`：全部已登录用户可读 ACTIVE+SYNCED 快照，仅 id（pub:UUID）、version、title、source、text；撤回或未同步404，不暴露原工单/知识/员工身份。原知识接口仍执行员工范围权限。

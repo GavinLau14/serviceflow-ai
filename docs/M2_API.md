@@ -17,3 +17,7 @@
 `GET /api/capabilities` 的 enabled/ragEnabled 表示 Java 配置已打开，不保证模型就绪；实际结果以 mode 与 Python /health 为准。
 
 Python：仅内部 loopback 18082，`X-Service-Token` 验证 /assist 与 /index；/health 只返回非敏感 readiness 信息。Java 不把客户令牌/角色或 MySQL 配置转发给 Python。检索来源使用 demo:// 标识，前端显示纯文本而非任意可点击 URL/HTML。
+
+## v0.7 公开知识白名单
+
+Java 调用 Python `/assist` 时可附加 publications（最多50个有效公开快照）；无白名单不检索公开集合。内部服务身份保护 `/publications/upsert`（document）与 `/publications/delete`（id），浏览器不能直接调用。Qdrant 独立集合使用真实 MiniLM 384维 cosine，payload 必须与请求快照及模型身份一致。Java 在回答入库、历史读取和旧草稿执行时再校验当前授权；撤回来源令整条旧回答降级，待执行草稿返回409 KNOWLEDGE_WITHDRAWN。公开来源 URI 为 knowledge://serviceflow/publications/UUID/vN。

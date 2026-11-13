@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "knowledgeId": 8,
+  "withdrawnVersion": 1,
+  "activeVersion": 2,
+  "mode": "retrieval_only",
+  "sourceFields": [
+    "id",
+    "source",
+    "text",
+    "title",
+    "version"
+  ],
+  "checks": [
+    "admin-only publication",
+    "real MiniLM/Qdrant citation",
+    "source snapshot without internal IDs",
+    "withdrawal removes source and history advice",
+    "new assist rejects revoked source",
+    "old withdrawal cannot revoke replacement"
+  ],
+  "llmQuality": "NOT_RUN: no model key"
+}

@@ -1,0 +1,4 @@
+ Container serviceflow-ai-service-run-c85f53b89407 Creating
+ Container serviceflow-ai-service-run-c85f53b89407 Created
+..................................                                       [100%]
+34 passed in 2.42s

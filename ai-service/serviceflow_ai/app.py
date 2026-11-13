@@ -3,10 +3,16 @@ import secrets
 import threading
 from fastapi import FastAPI, Header, Depends, HTTPException
 from pydantic import Field, field_validator
-from .core import Settings, StrictModel, AssistResponse, Assistant, OpenAIProvider
+from .core import Settings, StrictModel, AssistResponse, Assistant, OpenAIProvider, PublicDocument, PublicationDelete
 
 class AssistRequest(StrictModel):
     message: str = Field(min_length=1,max_length=5000)
+    publications: list[PublicDocument] = Field(default_factory=list,max_length=50)
+    @field_validator("publications")
+    @classmethod
+    def unique_publications(cls,value):
+        if len({d.id for d in value}) != len(value): raise ValueError("duplicate publication identity")
+        return value
     @field_validator("message")
     @classmethod
     def nonblank(cls,value):
@@ -15,6 +21,9 @@ class AssistRequest(StrictModel):
 
 class IndexRequest(StrictModel):
     pass
+
+class PublicationUpsert(StrictModel):
+    document: PublicDocument
 
 def create_app(settings:Settings|None=None,retrieval=None)->FastAPI:
     settings=settings or Settings()
@@ -38,7 +47,17 @@ def create_app(settings:Settings|None=None,retrieval=None)->FastAPI:
 
     @app.post("/assist",response_model=AssistResponse,dependencies=[Depends(authenticated)])
     def assist(request:AssistRequest):
-        return assistant.assist(request.message)
+        return assistant.assist(request.message,request.publications)
+
+    @app.post("/publications/upsert",dependencies=[Depends(authenticated)])
+    def upsert(request:PublicationUpsert):
+        try: return retrieval.upsert_publication(request.document)
+        except Exception: raise HTTPException(503,"Publication index not confirmed") from None
+
+    @app.post("/publications/delete",dependencies=[Depends(authenticated)])
+    def delete(request:PublicationDelete):
+        try: return retrieval.delete_publication(request.id)
+        except Exception: raise HTTPException(503,"Publication cleanup not confirmed") from None
 
     @app.post("/index",dependencies=[Depends(authenticated)])
     def index(request:IndexRequest):
