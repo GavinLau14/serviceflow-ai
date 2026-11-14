@@ -25,3 +25,13 @@ Java 调用 Python `/assist` 时可附加 publications（最多50个有效公开
 内部 POST `/publications/inspect`：与upsert相同的严格 `{document}`，受服务身份保护，不加载embedding。返回 `{id,version,state}`，state为CURRENT/MISSING/INVALID；网络异常503，不泄露陌生payload。Java另记录UNAVAILABLE，不能将其当作缺失或健康。核验结构不等于语义质量评测。
 
 v0.9客户端并发保护：成功创建/接管的工单关联不会被迟到历史快照降级为待确认，最多保留50条当前组件内关联；回答和引用仍采用最新安全历史内容，历史遗漏则显示无引用的完成提示。来源预览同时核对请求代次、当前运行与当前引用，不回填已被历史遮蔽的正文。该缓存不是权限来源，服务端幂等、撤回和详情授权仍为最终边界。
+
+## v0.10 管理员AI运行观测
+
+GET `/api/operations/ai-runs?hours=24&page=1&size=20&mode=&linkedOnly=false`：仅ADMIN。hours为1至168，页码1至100000，每页1至100；mode为空或rag/retrieval_only/disabled/error/unknown。窗口含[asOf-hours,asOf]，按createdAt/id倒序，同一REPEATABLE_READ快照返回items/total/page/size/hours/asOf/summary。summary不受模式和工单筛选影响，包含各模式计数、总记录、有关联工单、人工接管申请、原始提案记录及四舍五入的平均记录耗时；无有效耗时为null。
+
+items只含id、mode、latencyMs、citationCount、storedProposal、ticketId、handoffRequested、createdAt，不返回客户身份、咨询/回答/引用/提案正文及hash。模式二进制严格匹配固定常量；损坏JSON或未知模式归unknown，负耗时为null且不参与均值，异常引用数组计数为null。citationCount与storedProposal是原日志事实，撤回不改写历史计数，也不授予当前执行权限。
+
+GET `/api/operations/ai-health`：仅ADMIN，返回status/mode/retrievalReady/llmConfigured/checkedAt。status为NOT_CONFIGURED、REACHABLE或UNAVAILABLE；未确认的布尔值为null。探测整体等待3秒，响应订阅上限4096字节，不回传服务地址、Token或上游报错。REACHABLE不表示服务鉴权或真实模型质量已通过；探测网络不占用数据库事务。所有非管理员403，未登录401。
+
+V11仅新增ai_runs(created_at,id)索引；原始日志仍保留，尚无保留期清理、自动告警或生产规模性能结论。

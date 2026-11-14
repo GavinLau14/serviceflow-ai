@@ -20,6 +20,7 @@ main 保留当前可演示的集成版本；新功能从最新 main 创建 `code
 | 知识公开/撤回 | codex/knowledge-publication | v0.7.0 | 93cb6ed |
 | 索引核验/恢复 | codex/knowledge-index-operations | v0.8.0 | 1edc344 |
 | SLA风险与并发修复 | codex/sla-risk-workbench | v0.9.0 | 7c34f39 |
+| AI运行观测 | codex/ai-operations | v0.10.0 | 见v0.10.0标签 |
 
 M1–v0.4.1历史快照分支和标签在首次 GitHub 发布时根据已有提交建立，原始提交时间、作者、内容保持不变；没有补造历史 PR 或声称它们曾在 GitHub 完成评审。标签是固定快照，后续不移动或覆盖。v0.5起使用功能分支PR，等待PR和main的verify、ai-contracts、container-smoke三项通过再发布；表内提交为对应标签指向的版本提交。
 

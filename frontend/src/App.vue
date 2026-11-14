@@ -46,6 +46,7 @@ import TicketDetail from "./components/TicketDetail.vue";
 import AiAssist from "./components/AiAssist.vue";
 import OperationsView from "./components/OperationsView.vue";
 import SlaInbox from "./components/SlaInbox.vue";
+import AiOperations from "./components/AiOperations.vue";
 import AccountSecurity from "./components/AccountSecurity.vue";
 const accountOpen = ref(false);
 const user = ref<User | null>(null),
@@ -65,10 +66,12 @@ const assistOpen = ref(false),
   indexing = ref(false),
   indexError = ref(""),
   indexResult = ref("");
-const view = ref<"tickets" | "notifications" | "knowledge" | "sla">("tickets");
+const view = ref<"tickets" | "notifications" | "knowledge" | "sla" | "ai-operations">("tickets");
 const viewTitle = computed(() =>
   view.value === "notifications"
     ? "通知中心"
+    : view.value === "ai-operations"
+      ? "AI运行"
     : view.value === "sla"
       ? "服务时限"
     : view.value === "knowledge"
@@ -267,7 +270,7 @@ onUnmounted(() =>
           @click="view = 'knowledge'"
         >
           <el-icon><Reading /></el-icon>
-        </button><button v-if="user.role !== 'CUSTOMER'" :class="{active:view==='sla'}" aria-label="服务时限" @click="view='sla'"><el-icon><Timer /></el-icon></button>
+        </button><button v-if="user.role !== 'CUSTOMER'" :class="{active:view==='sla'}" aria-label="服务时限" @click="view='sla'"><el-icon><Timer /></el-icon></button><button v-if="user.role === 'ADMIN'" :class="{active:view==='ai-operations'}" aria-label="AI运行" @click="view='ai-operations'"><el-icon><Connection /></el-icon></button>
       </div>
       <button class="rail-logout" aria-label="退出登录" @click="logout">
         <el-icon><SwitchButton /></el-icon></button
@@ -331,7 +334,7 @@ onUnmounted(() =>
           @click="view = 'knowledge'"
         >
           <el-icon><Reading /></el-icon>服务知识库</button
-        ><button v-if="user.role !== 'CUSTOMER'" :class="{chosen:view==='sla'}" @click="view='sla'"><el-icon><Timer /></el-icon>服务时限</button><button v-if="user.role === 'CUSTOMER'" @click="assistOpen = true">
+        ><button v-if="user.role !== 'CUSTOMER'" :class="{chosen:view==='sla'}" @click="view='sla'"><el-icon><Timer /></el-icon>服务时限</button><button v-if="user.role === 'ADMIN'" :class="{chosen:view==='ai-operations'}" @click="view='ai-operations'"><el-icon><Connection /></el-icon>AI运行</button><button v-if="user.role === 'CUSTOMER'" @click="assistOpen = true">
           <el-icon><Connection /></el-icon>自助排查
         </button>
       </nav>
@@ -401,7 +404,8 @@ onUnmounted(() =>
           </details>
         </div>
       </div>
-      <SlaInbox v-if="view==='sla'" :user="user" @open-ticket="openTicket" />
+      <AiOperations v-if="view==='ai-operations'" :user="user" @open-ticket="openTicket" />
+      <SlaInbox v-else-if="view==='sla'" :user="user" @open-ticket="openTicket" />
       <OperationsView
         v-else-if="view !== 'tickets'"
         :user="user"
