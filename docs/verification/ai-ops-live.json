@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "windowHours": 168,
+  "recordCount": 19,
+  "linkedCount": 6,
+  "openedTicketId": 30,
+  "createdDemoTicket": null,
+  "health": {
+    "status": "REACHABLE",
+    "mode": "retrieval_only",
+    "retrievalReady": true,
+    "llmConfigured": false
+  },
+  "checks": [
+    "three non-admin roles get403 on both endpoints",
+    "metadata contains only eight allow-listed fields",
+    "real health probe and explicit retrieval_only mode",
+    "actual admin phone navigation and linked-ticket detail",
+    "supervisor phone has no global AI entry",
+    "390px no horizontal overflow or page errors"
+  ],
+  "llmQuality": "NOT_RUN: no model key"
+}

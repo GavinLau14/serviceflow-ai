@@ -7,6 +7,7 @@ Java 是业务权限和写操作的唯一入口，Python 负责推理与受约�
 | 账号/数据范围 | [auth](../backend/src/main/java/com/serviceflow/auth/)、[MyBatis 工单查询](../backend/src/main/resources/mappers/)、[账号安全](../frontend/src/components/AccountSecurity.vue) | WorkflowIntegrationTest、LoginRateLimitTest、PasswordChangeIntegrationTest |
 | 工单状态机/沟通 | [ticket](../backend/src/main/java/com/serviceflow/ticket/) | WorkflowIntegrationTest、ConcurrentUpdateTest |
 | AI 接入/客户确认/幂等 | [Java ai](../backend/src/main/java/com/serviceflow/ai/)、[Python core](../ai-service/serviceflow_ai/core.py)、[真实检索](../ai-service/serviceflow_ai/retrieval.py) | AiIntegrationTest、AiExecutionConcurrencyTest、Python test_contract / test_real_smoke |
+| AI运行观测 | AiOperationsController / AiOperationsService、AiGateway.health、AiOperations.vue | AiOperationsIntegrationTest、ai-operations-contract.spec.ts |
 | 分派/SLA/审计/outbox | [operations](../backend/src/main/java/com/serviceflow/operations/) | OperationsIntegrationTest |
 | SLA风险处置 | SlaInboxController / SlaInboxService、OperationsService.transitionSla、SlaInbox.vue | SlaInboxIntegrationTest、OperationsIntegrationTest、sla-inbox-contract.spec.ts |
 | 通知收件箱 | OperationsController / OperationsService、[通知界面](../frontend/src/components/OperationsView.vue) | NotificationInboxIntegrationTest、operations-contract.spec.ts |

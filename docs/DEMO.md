@@ -30,9 +30,16 @@
 4. 在工单“服务时限与审计”展开记录，查看累计等待和已结算截止。界面按分钟显示；秒级补偿查看 [实际SLA结果](verification/sla-live.json)。需要在界面直观看到分钟变化时，可在等待期间讲解知识流程后再恢复处理。
 5. 首次响应时钟不暂停；未首次响应的历史演示记录仍可能显示首次响应超时。已有超时升级不会被暂停操作撤销。
 
+## v0.10 管理员AI运行观测
+
+1. 管理员从桌面导航或手机常驻图标进入“AI运行”，查看当前健康接口报告的模式、检索状态与语言模型配置。当前无模型Key时为仅检索原文；“接口可达”只表示健康探测成功。
+2. 选择近1小时、近24小时或近7天，筛选当时模式或已关联工单，翻页查看运行UUID、记录耗时与原始引用/提案标记。汇总基于整个窗口，不随列表筛选改变。
+3. 打开已关联工单，仍使用原有详情和处理权限。客服、主管和客户没有全局入口，对全局接口均403；页面不展示客户身份、咨询、回答或引用正文。
+4. 历史引用条数和提案标记不是当前授权；核验也不调用语言模型。记录平均耗时不是生产性能基准，真实LLM验收仍按既有六场景脚本执行。
+
 ## 可复现证据
 
-M1–M4_RESULTS.md分别记录里程碑当时的命令、结果及局限，verification目录保存摘要。JUnit是真实MySQL/Redis，Python另分fake契约与真实Embedding测试，浏览器替身场景有明确标签。完整stack smoke从浏览器同源API入口执行，不能替代真实远端LLM质量评测。最新模块结果见 [索引恢复](INDEX_OPERATIONS_RESULTS.md) 与 [SLA风险处置](SLA_WORKBENCH_RESULTS.md)。源码学习与表述边界见 [面试讲解](INTERVIEW_GUIDE.md)。
+M1–M4_RESULTS.md分别记录里程碑当时的命令、结果及局限，verification目录保存摘要。JUnit是真实MySQL/Redis，Python另分fake契约与真实Embedding测试，浏览器替身场景有明确标签。完整stack smoke从浏览器同源API入口执行，不能替代真实远端LLM质量评测。最新模块结果见 [索引恢复](INDEX_OPERATIONS_RESULTS.md) 、[SLA风险处置](SLA_WORKBENCH_RESULTS.md) 与 [AI运行观测](AI_OPERATIONS_RESULTS.md)。源码学习与表述边界见 [面试讲解](INTERVIEW_GUIDE.md)。
 
 ## 面试可讨论的决策
 
